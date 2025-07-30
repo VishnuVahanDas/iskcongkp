@@ -3,6 +3,7 @@
 import os
 import sys
 
+
 if "ENVIRONMENT_NAME" in os.environ:
     environment_name = os.environ['ENVIRONMENT_NAME']
     environment_settings_file = "iskcongkp.settings."+environment_name
