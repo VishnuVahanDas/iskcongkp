@@ -1,11 +1,11 @@
 from django.shortcuts import render
 
 # Create your views here.
-from .models import banner, top_header
+from .models import Banner, TopHeader
 
 def home_view(request):
-    banners = banner.objects.all().order_by('-id')
-    top_headers = top_header.objects.all().order_by('-id')
+    banners = Banner.objects.all().order_by('-id')
+    top_headers = TopHeader.objects.all().order_by('-id')
     context = {
          "banner": banners ,
          "top_header": top_headers
