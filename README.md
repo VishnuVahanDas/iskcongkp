@@ -26,13 +26,11 @@ This repository contains the source code of a Django based website for ISKCON Go
 
 3. **Install dependencies**
 
-   The project uses Django, gunicorn and a few supporting packages. Install them with `pip`:
+    Install the project dependencies using the provided `requirements.txt`:
 
-   ```bash
-   pip install django gunicorn psycopg2-binary django-cleanup pillow packaging sqlparse
-   ```
-
-   You can alternatively create a `requirements.txt` and use `pip install -r requirements.txt`.
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 4. **Create a PostgreSQL database**
 
