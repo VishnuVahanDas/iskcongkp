@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import banner, top_header
+from .models import Banner, TopHeader
 # Register your models here.
-admin.site.register(banner)
-admin.site.register(top_header)
+admin.site.register(Banner)
+admin.site.register(TopHeader)
 

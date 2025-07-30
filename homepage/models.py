@@ -1,6 +1,6 @@
 from django.db import models
 
-class banner(models.Model):
+class Banner(models.Model):
     image = models.ImageField(upload_to="homepage")
     alt = models.CharField(max_length=255)
 
@@ -8,9 +8,10 @@ class banner(models.Model):
         return self.alt
 
 
-class top_header(models.Model):
+class TopHeader(models.Model):
     image = models.ImageField(upload_to="homepage")
     alt = models.CharField(max_length=255)
 
     def __str__(self):
         return self.alt
+
