@@ -19,8 +19,8 @@ def krsna_school(request):
 def courses(request):
     return render(request, 'services/courses.html')
 
-def siksha(request):
-    return render(request, 'services/siksha.html')
+def shiksha(request):
+    return render(request, 'services/shiksha.html')
 
 def food_for_life(request):
     return render(request, 'services/food-for-life.html')

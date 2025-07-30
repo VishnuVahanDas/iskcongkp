@@ -11,5 +11,5 @@ urlpatterns = [
     path("food-for-life", views.food_for_life, name="food_for_life"),
     path("krishna-fun-school", views.krsna_school, name="krsna_school"),
     path("courses", views.courses, name="courses"),
-    path("siksha", views.siksha, name="shiksha"),
+    path("shiksha", views.shiksha, name="shiksha"),
 ]
