@@ -1,2 +1,35 @@
+# Ignore Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+env/
+.venv/
+
+# Django database
+db.sqlite3
+
+# Environment variables file
 .env
 
+# Other generated assets
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.coverage
+htmlcov/
+.coverage
+.envrc
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+*.bak
+.DS_Store
+.idea/
+.vscode/
