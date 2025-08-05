@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 #DEBUG = True
-ALLOWED_HOSTS = ["iyf.vishnuvahan.com","iskcongorakhpur.com","88.222.241.219"]
+ALLOWED_HOSTS = ["iskcongorakhpur.com"]
 
 
 # Application definition
