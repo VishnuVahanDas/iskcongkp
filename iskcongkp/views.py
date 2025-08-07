@@ -9,6 +9,9 @@ def terms_view(request):
 def privacy_view(request):
     return render(request, 'privacy.html')
 
+def maintenance_view(request):
+    return render(request, 'maintenance.html')
+
 def error_404_view(request, exception):
     # we add the path to the 404.html file
     # here. The name of our HTML file is 404.html

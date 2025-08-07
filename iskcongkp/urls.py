@@ -22,7 +22,7 @@ from django.conf.urls.static import static
 from django.views.static import serve
 
 
-from .views import  contact_view, privacy_view , terms_view
+from .views import  contact_view, privacy_view , terms_view, maintenance_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -34,6 +34,7 @@ urlpatterns = [
     path("contact", contact_view, name="contact"),
     path("terms", terms_view, name="terms"),
     path("privacy-policy", privacy_view, name="privacy-policy"),
+    path("maintenance/", maintenance_view, name="maintenance"),
     url(r'^assets/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     url(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT})
 
