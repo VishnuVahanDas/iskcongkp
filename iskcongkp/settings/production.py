@@ -149,4 +149,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Social login Django allauth settings
 SITE_ID = 1
-MAINTENANCE_MODE = True
+MAINTENANCE_MODE = False
