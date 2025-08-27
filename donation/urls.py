@@ -12,7 +12,5 @@ urlpatterns = [
     path("janmashtami-seva", views.janmashtami_seva, name="janmashtami_seva"),
     path("tula-daan-utsav", views.tula_daan, name="tula_daan"),
     path("donate-a-brick", views.donate_brick, name="donate_brick"),
-    path("pay/", views.pay, name="pay"),
-    path("callback/", views.callback, name="callback"),
-    
+    path("pay/", views.start_donation_payment, name="pay"),
 ]
