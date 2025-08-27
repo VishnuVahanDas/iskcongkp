@@ -409,6 +409,7 @@
                                   <div class="mb-3 mt-3 row">
                                     <form id="myForm" action="" method="POST"
                                       onchange="SetData('wheatflour_seva_amount','Wheat Flour')">
+                                      {% csrf_token %}
                                       <div class="tab-content" id="pills-tabContent">
                                         <div class="tab-pane fade show active" id="pills-wheatflour" role="tabpanel"
                                           aria-labelledby="pills-wheatflour-tab">
@@ -632,6 +633,7 @@
                                   <div class="mb-3 mt-3 row">
                                     <form id="myForm" action="" method="POST"
                                       onchange="SetData('edibleoil_seva_amount','Edible Oil')">
+                                      {% csrf_token %}
                                       <div class="tab-content" id="pills-tabContent">
                                         <div class="tab-pane fade show active" id="pills-edibleoil" role="tabpanel"
                                           aria-labelledby="pills-edibleoil-tab">
@@ -855,6 +857,7 @@
                                   <div class="mb-3 mt-3 row">
                                     <form id="myForm" action="" method="POST"
                                       onchange="SetData('dryfruit_seva_amount','Dry Fruits')">
+                                      {% csrf_token %}
                                       <div class="tab-content" id="pills-tabContent">
                                         <div class="tab-pane fade show active" id="pills-dryfruites" role="tabpanel"
                                           aria-labelledby="pills-dryfruites-tab">
