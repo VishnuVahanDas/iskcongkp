@@ -101,5 +101,5 @@ def hdfc_return(request):
     except Order.DoesNotExist:
         return HttpResponseBadRequest("Unknown order_id")
 
-    return redirect(f"/thank-you?order_id={order_id}") if order.status == "paid" \
-           else redirect(f"/payment-error?order_id={order_id}")
+    template = "donation/success.html" if order.status == "paid" else "donation/failure.html"
+    return render(request, template, {"order": order})

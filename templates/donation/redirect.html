@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Redirecting to Payment...</title>
+    <script>
+        window.onload = function () {
+            var link = "{{ payment_link }}";
+            if (link) {
+                window.location.href = link;
+            }
+        };
+    </script>
+</head>
+<body>
+    <p>Redirecting to payment gateway&hellip;</p>
+    <noscript>
+        <p><a href="{{ payment_link }}">Click here to continue</a></p>
+    </noscript>
+</body>
+</html>

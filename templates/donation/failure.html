@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" dir="ltr">
+<head>
+    {% include 'head.html' %}
+    <title>Payment Failed</title>
+</head>
+<body class="layout-no-sidebars page-node-148 path-node node--type-page">
+    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+    <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+        <div id="page-wrapper">
+            <div id="page">
+                {% include 'navbar.html' %}
+                <div id="main-wrapper" class="layout-main-wrapper clearfix">
+                    <div id="main" class="container">
+                        <div class="row row-offcanvas row-offcanvas-left clearfix">
+                            <main class="main-content col" id="content" role="main">
+                                <section class="section">
+                                    <a id="main-content" tabindex="-1"></a>
+                                    <h1 class="title">Payment Failed</h1>
+                                    <p>Your transaction could not be completed.</p>
+                                    <p><strong>Order ID:</strong> {{ order.order_id }}</p>
+                                    <p><strong>Amount:</strong> {{ order.amount }} {{ order.currency }}</p>
+                                    {% if order.gateway_txn_id %}
+                                    <p><strong>Transaction ID:</strong> {{ order.gateway_txn_id }}</p>
+                                    {% endif %}
+                                </section>
+                            </main>
+                        </div>
+                    </div>
+                </div>
+                {% include 'footer.html' %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
