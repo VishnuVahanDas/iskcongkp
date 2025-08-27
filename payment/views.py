@@ -1,5 +1,5 @@
 # payment/views.py
-import uuid, decimal, requests
+import uuid, decimal, requests, logging
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseBadRequest
@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import transaction
 from .models import Order
 from .utils import basic_auth_header, verify_hmac
+
+logger = logging.getLogger(__name__)
 
 SESSION_PATH = "/docs/api/session"  # <-- adjust to the exact session endpoint from your doc/sample
 # (Docs call it “Create Session / Create Order to open payment page”)
@@ -71,6 +73,7 @@ def hdfc_return(request):
     SmartGateway will hit this URL after payment.
     Enable “Response HMAC signature” in dashboard and verify with RESPONSE_KEY.
     """
+    logger.debug("HDFC return POST data: %s", request.POST.dict())
     data = request.POST.dict() or request.GET.dict()
     # Depending on configuration, the signature might arrive as 'signature' or 'hmac'.
     received_sig = data.get("signature") or data.get("hmac") or data.get("mac") or ""
