@@ -22,8 +22,13 @@ def start_payment(request):
         amount = decimal.Decimal(request.GET.get("amount", "2500.00"))
     except decimal.InvalidOperation:
         return HttpResponseBadRequest("Invalid amount")
-
-    order = Order.objects.create(order_id=uuid.uuid4().hex[:12].upper(), amount=amount, status="processing")
+    category = request.GET.get("category", "")
+    order = Order.objects.create(
+        order_id=uuid.uuid4().hex[:12].upper(),
+        amount=amount,
+        status="processing",
+        category=category,
+    )
 
     # Payload shape follows the SmartGateway “Session / Create Order” doc.
     # Confirm exact keys from your sample project page.

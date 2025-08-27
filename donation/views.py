@@ -13,12 +13,14 @@ def start_donation_payment(request):
             name = request.POST.get("name", "")
             email = request.POST.get("email", "")
             phone = request.POST.get("phone", "")
+            category = request.POST.get("category", "")
             params = urlencode(
                 {
                     "amount": amount,
                     "name": name,
                     "email": email,
                     "phone": phone,
+                    "category": category,
                 }
             )
             return redirect(f"{reverse('payment:hdfc_start')}?{params}")
