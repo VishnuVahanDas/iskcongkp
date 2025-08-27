@@ -186,6 +186,15 @@
 <script src="{% static 'modules/contrib/google_tag/js/8tqr9gtag.js' %}"></script>
 <script src="{% static 'modules/contrib/google_tag/js/s8tqr9gtag.js' %}"></script>
 <script src="{% static 'sites/default/files/js/js_Gp4c7SYx4wl7Wd9mE0s4wseI6GimRuoVwHWJyDftWcY.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEl = document.getElementById('newsModal');
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+});
+</script>
 <div style="position: static;">
     <div class="a2a_overlay" id="a2a_overlay"></div>
     <div id="a2a_modal" class="a2a_modal a2a_hide" role="dialog" tabindex="-1" aria-label>
