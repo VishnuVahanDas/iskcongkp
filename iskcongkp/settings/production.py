@@ -30,6 +30,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 #DEBUG = True
 ALLOWED_HOSTS = ["iskcongorakhpur.com"]
 
+CSRF_TRUSTED_ORIGINS = ["https://iskcongorakhpur.com"]
 
 # Application definition
 
