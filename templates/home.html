@@ -268,6 +268,25 @@
             </div>
         </div>
     </div>
+    {% if news_popup %}
+    <div class="modal fade" id="newsPopupModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body p-0">
+            <a href="{{ news_popup.link_url }}">
+              <img src="{{ news_popup.image.url }}" alt="{{ news_popup.alt }}" class="img-fluid">
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var modal = new bootstrap.Modal(document.getElementById('newsPopupModal'));
+        modal.show();
+      });
+    </script>
+    {% endif %}
     {% include 'body_script.html' %}
 </body>
 
