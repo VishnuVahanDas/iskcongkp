@@ -2,6 +2,7 @@ from django.conf import settings
 from django.shortcuts import render, redirect
 from .forms import DonationForm
 from payments.hdfc import encrypt
+from payments.hdfc import decrypt
 
 # Create your views here.
 
@@ -59,3 +60,14 @@ def tula_daan(request):
 
 def donate_brick(request):
     return render(request, 'donation/donate-brick.html')
+
+
+def callback(request):
+    enc_resp = request.POST.get("encResp")
+    if not enc_resp:
+        return render(request, "donation/failure.html")
+    response = dict(item.split("=") for item in decrypt(enc_resp).split("&"))
+    if response.get("order_status") == "Success":
+        # mark order paid here
+        return render(request, "donation/success.html", {"data": response})
+    return render(request, "donation/failure.html", {"data": response})
