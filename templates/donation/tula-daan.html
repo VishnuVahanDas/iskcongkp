@@ -185,6 +185,7 @@
                                   <div class="mb-3 mt-3 row">
                                     <form id="myForm" action="" method="POST"
                                       onchange="SetData('rice_seva_amount','Wheat Flour')">
+                                      {% csrf_token %}
                                       <div class="tab-content" id="pills-tabContent">
                                         <div class="tab-pane fade show active" id="pills-rice" role="tabpanel"
                                           aria-labelledby="pills-rice-tab">
