@@ -1,8 +1,8 @@
 from django.conf import settings
 from django.shortcuts import render, redirect
 from .forms import DonationForm
-from payments.hdfc import encrypt
-from payments.hdfc import decrypt
+from payment.hdfc import encrypt
+from payment.hdfc import decrypt
 
 # Create your views here.
 
