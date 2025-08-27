@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#">
+
+<head>
+  {% include 'head.html' %}
+  <title>Launch | ISKCON Gorakhpur</title>
+</head>
+
+<body class="layout-no-sidebars page-node-148 path-node node--type-page">
+  <a href="#main-content" class="visually-hidden-focusable">
+    Skip to main content
+  </a>
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5RKQZD47" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe></noscript>
+
+  <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+    <div id="page-wrapper">
+      <div id="page">
+    <main id="main-content" class="container text-center mt-4">
+        <img src="{% static 'images/lord.png' %}" alt="Lord" class="img-fluid" />
+        <img src="{% static 'images/prabhupada.png' %}" alt="Srila Prabhupada" class="img-fluid mt-3" />
+    </main>
+    {% include 'footer.html' %}
+      </div>
+    </div>
+
+  </div>
+  {% include 'body_script.html' %}
+</body>
+
+</html>

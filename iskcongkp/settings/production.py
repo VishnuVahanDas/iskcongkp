@@ -16,6 +16,11 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+HDFC_MERCHANT_ID = os.environ["HDFC_MERCHANT_ID"]
+HDFC_ACCESS_CODE = os.environ["HDFC_ACCESS_CODE"]
+HDFC_WORKING_KEY = os.environ["HDFC_WORKING_KEY"]
+HDFC_PAYMENT_URL = os.environ["HDFC_PAYMENT_URL"]
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
