@@ -1,71 +1,56 @@
-from django.conf import settings
 from django.shortcuts import render, redirect
+from django.urls import reverse
+from urllib.parse import urlencode
+
 from .forms import DonationForm
-from payment.hdfc import encrypt
-from payment.hdfc import decrypt
 
-# Create your views here.
 
-def pay(request):
+def start_donation_payment(request):
     if request.method == "POST":
         form = DonationForm(request.POST)
         if form.is_valid():
-            order_id = form.cleaned_data["order_id"]
-            amount = form.cleaned_data["amount"]
-            params = {
-                "merchant_id": settings.HDFC_SMART["MERCHANT_ID"],
-                "order_id": order_id,
-                "currency": "INR",
-                "amount": f"{amount:.2f}",
-                "redirect_url": request.build_absolute_uri("callback/"),
-                "cancel_url": request.build_absolute_uri("callback/"),
-                "language": "EN",
-            }
-            query = "&".join(f"{k}={v}" for k, v in params.items())
-            enc_request = encrypt(query)
-            context = {
-                "enc_request": enc_request,
-            }
-            return render(request, "donation/redirect.html", context)
+            amount = form.cleaned_data.get("amount")
+            name = request.POST.get("name", "")
+            email = request.POST.get("email", "")
+            phone = request.POST.get("phone", "")
+            params = urlencode(
+                {
+                    "amount": amount,
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                }
+            )
+            return redirect(f"{reverse('payment:hdfc_start')}?{params}")
     else:
         form = DonationForm()
     return render(request, "donation/pay.html", {"form": form})
 
 
 def shastra_daan(request):
-    return render(request, 'donation/shastra-daan.html')
+    return render(request, "donation/shastra-daan.html")
 
 
 def temple_seva(request):
-    return render(request, 'donation/temple-seva.html')
+    return render(request, "donation/temple-seva.html")
 
 
 def annadana_seva(request):
-    return render(request, 'donation/annadaan.html')
+    return render(request, "donation/annadaan.html")
 
 
 def nitya_seva(request):
-    return render(request, 'donation/nitya-seva.html')
+    return render(request, "donation/nitya-seva.html")
 
 
 def janmashtami_seva(request):
-    return render(request, 'donation/janmashtami.html')
+    return render(request, "donation/janmashtami.html")
 
 
 def tula_daan(request):
-    return render(request, 'donation/tula-daan.html')
+    return render(request, "donation/tula-daan.html")
 
 
 def donate_brick(request):
-    return render(request, 'donation/donate-brick.html')
+    return render(request, "donation/donate-brick.html")
 
-
-def callback(request):
-    enc_resp = request.POST.get("encResp")
-    if not enc_resp:
-        return render(request, "donation/failure.html")
-    response = dict(item.split("=") for item in decrypt(enc_resp).split("&"))
-    if response.get("order_status") == "Success":
-        # mark order paid here
-        return render(request, "donation/success.html", {"data": response})
-    return render(request, "donation/failure.html", {"data": response})
