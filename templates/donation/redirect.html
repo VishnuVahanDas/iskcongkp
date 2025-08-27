@@ -1,0 +1,5 @@
+<form id="pay" method="post" action="{{ payment_url }}">
+  <input type="hidden" name="encRequest" value="{{ enc_request }}">
+  <input type="hidden" name="access_code" value="{{ access_code }}">
+</form>
+<script>document.getElementById("pay").submit();</script>
