@@ -10,7 +10,7 @@ from .utils import basic_auth_header, verify_hmac
 
 logger = logging.getLogger(__name__)
 
-SESSION_PATH = "/docs/api/session"  # <-- adjust to the exact session endpoint from your doc/sample
+SESSION_PATH = "/api/v1/session"  # <-- replace with the actual session endpoint from HDFC docs
 # (Docs call it “Create Session / Create Order to open payment page”)
 # If your sample shows a different path (e.g. /api/v2/session or /session), replace it.
 
@@ -53,16 +53,24 @@ def start_payment(request):
         "Content-Type": "application/json",
     }
     r = requests.post(_session_url(), json=payload, headers=headers, timeout=20)
-    data = r.json() if r.headers.get("content-type","").startswith("application/json") else {}
 
-    # Adjust these keys per API response (docs say SDK payload + payment link)
-    payment_link = data.get("payment_link") or data.get("payment_url") or data.get("redirect_url")
-    order.gateway_order_id = data.get("order_id") or data.get("bank_order_id")
+    if r.status_code != 200:
+        logger.error("HDFC session creation failed with status %s: %s", r.status_code, r.text)
+        return HttpResponseBadRequest("Could not create payment session")
+
+    data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+
+    # Extract redirect URL from nested data per HDFC API
+    inner = data.get("data") or {}
+    payment_link = inner.get("redirectUrl")
+    order.gateway_order_id = inner.get("orderId") or data.get("order_id") or data.get("bank_order_id")
     order.raw_req, order.raw_resp = payload, data
-    order.save(update_fields=["gateway_order_id","raw_req","raw_resp"])
+    order.save(update_fields=["gateway_order_id", "raw_req", "raw_resp"])
 
     if not payment_link:
-        return HttpResponseBadRequest("Could not create payment session")
+        msg = inner.get("message") or data.get("message") or "Redirect URL missing in response"
+        logger.error("HDFC response missing redirect URL: %s", data)
+        return HttpResponseBadRequest(msg)
 
     return redirect(payment_link)
 
