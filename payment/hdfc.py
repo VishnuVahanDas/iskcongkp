@@ -2,7 +2,7 @@ import base64, hashlib, os
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-WORKING_KEY = os.environ["HDFC_WORKING_KEY"]
+WORKING_KEY = os.environ["HDFC_API_KEY"]
 
 def _key() -> bytes:
     return hashlib.md5(WORKING_KEY.encode()).digest()
