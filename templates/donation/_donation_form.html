@@ -1,0 +1,21 @@
+<form action="{% url 'donation:start_payment' %}" method="post" class="donation-form">
+  {% csrf_token %}
+  <input type="hidden" name="category" value="{{ category }}">
+  <div class="mb-3">
+    <label for="donation-name" class="form-label">Name</label>
+    <input type="text" class="form-control" id="donation-name" name="name" required>
+  </div>
+  <div class="mb-3">
+    <label for="donation-email" class="form-label">Email</label>
+    <input type="email" class="form-control" id="donation-email" name="email" required>
+  </div>
+  <div class="mb-3">
+    <label for="donation-phone" class="form-label">Phone</label>
+    <input type="text" class="form-control" id="donation-phone" name="phone">
+  </div>
+  <div class="mb-3">
+    <label for="donation-amount" class="form-label">Donation Amount</label>
+    <input type="number" class="form-control" id="donation-amount" name="amount" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Donate Now</button>
+</form>

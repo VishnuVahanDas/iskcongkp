@@ -1,32 +1,36 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.http import HttpResponseBadRequest
 from urllib.parse import urlencode
 
 from .forms import DonationForm
 
 
-def start_donation_payment(request):
-    if request.method == "POST":
-        form = DonationForm(request.POST)
-        if form.is_valid():
-            amount = form.cleaned_data.get("amount")
-            name = request.POST.get("name", "")
-            email = request.POST.get("email", "")
-            phone = request.POST.get("phone", "")
-            category = request.POST.get("category", "")
-            params = urlencode(
-                {
-                    "amount": amount,
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                    "category": category,
-                }
-            )
-            return redirect(f"{reverse('payment:hdfc_start')}?{params}")
-    else:
-        form = DonationForm()
-    return render(request, "donation/pay.html", {"form": form})
+def start_payment(request):
+    """Wrapper view to redirect donation details to the payment app."""
+
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid request")
+
+    form = DonationForm(request.POST)
+    if not form.is_valid():
+        return HttpResponseBadRequest("Invalid data")
+
+    amount = form.cleaned_data.get("amount")
+    name = form.cleaned_data.get("name", "")
+    email = form.cleaned_data.get("email", "")
+    phone = form.cleaned_data.get("phone", "")
+    category = form.cleaned_data.get("category", "")
+    params = urlencode(
+        {
+            "amount": amount,
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "category": category,
+        }
+    )
+    return redirect(f"{reverse('payment:hdfc_start')}?{params}")
 
 
 def shastra_daan(request):
