@@ -52,11 +52,24 @@ def start_payment(request):
         "Authorization": basic_auth_header(),
         "Content-Type": "application/json",
     }
-    r = requests.post(_session_url(), json=payload, headers=headers, timeout=20)
+    try:
+        r = requests.post(_session_url(), json=payload, headers=headers, timeout=20)
+    except requests.RequestException:
+        logger.exception("HDFC session creation request failed: payload=%s", payload)
+        return HttpResponseBadRequest(
+            f"Could not create payment session. Reference ID: {order.order_id}"
+        )
 
     if r.status_code != 200:
-        logger.error("HDFC session creation failed with status %s: %s", r.status_code, r.text)
-        return HttpResponseBadRequest("Could not create payment session")
+        logger.error(
+            "HDFC session creation failed: payload=%s status=%s text=%s",
+            payload,
+            r.status_code,
+            r.text,
+        )
+        return HttpResponseBadRequest(
+            f"Could not create payment session. Reference ID: {order.order_id}"
+        )
 
     data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
 
@@ -69,8 +82,13 @@ def start_payment(request):
 
     if not payment_link:
         msg = inner.get("message") or data.get("message") or "Redirect URL missing in response"
-        logger.error("HDFC response missing redirect URL: %s", data)
-        return HttpResponseBadRequest(msg)
+        logger.error(
+            "HDFC response missing redirect URL: payload=%s status=%s text=%s",
+            payload,
+            r.status_code,
+            r.text,
+        )
+        return HttpResponseBadRequest(f"{msg}. Reference ID: {order.order_id}")
 
     return redirect(payment_link)
 
