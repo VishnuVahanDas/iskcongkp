@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 import os.path
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -25,6 +26,13 @@ HDFC_SMART = {
     "RESPONSE_KEY": os.environ.get("HDFC_RESPONSE_KEY"),
     "RETURN_URL": os.environ.get("HDFC_RETURN_URL"),
 }
+
+_required_hdfc_keys = ["BASE_URL", "API_KEY", "MERCHANT_ID", "CLIENT_ID", "RESPONSE_KEY", "RETURN_URL"]
+_missing_hdfc_keys = [k for k in _required_hdfc_keys if not HDFC_SMART.get(k)]
+if _missing_hdfc_keys:
+    raise ImproperlyConfigured(
+        "Missing HDFC_SMART settings: " + ", ".join(_missing_hdfc_keys)
+    )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(

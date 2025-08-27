@@ -13,7 +13,7 @@ def pay(request):
             order_id = form.cleaned_data["order_id"]
             amount = form.cleaned_data["amount"]
             params = {
-                "merchant_id": settings.HDFC_MERCHANT_ID,
+                "merchant_id": settings.HDFC_SMART["MERCHANT_ID"],
                 "order_id": order_id,
                 "currency": "INR",
                 "amount": f"{amount:.2f}",
@@ -25,8 +25,6 @@ def pay(request):
             enc_request = encrypt(query)
             context = {
                 "enc_request": enc_request,
-                "access_code": settings.HDFC_ACCESS_CODE,
-                "payment_url": settings.HDFC_PAYMENT_URL,
             }
             return render(request, "donation/redirect.html", context)
     else:
