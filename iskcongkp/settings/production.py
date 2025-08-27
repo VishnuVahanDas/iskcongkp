@@ -16,10 +16,15 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-HDFC_MERCHANT_ID = os.environ["HDFC_MERCHANT_ID"]
-HDFC_ACCESS_CODE = os.environ["HDFC_ACCESS_CODE"]
-HDFC_WORKING_KEY = os.environ["HDFC_WORKING_KEY"]
-HDFC_PAYMENT_URL = os.environ["HDFC_PAYMENT_URL"]
+
+HDFC_SMART = {
+    "BASE_URL": os.environ.get("HDFC_BASE_URL", "https://smartgatewayuat.hdfcbank.com"),
+    "API_KEY": os.environ.get("HDFC_API_KEY"),
+    "MERCHANT_ID": os.environ.get("HDFC_MERCHANT_ID"),
+    "CLIENT_ID": os.environ.get("HDFC_CLIENT_ID"),  # 'hdfcmaster' on UAT
+    "RESPONSE_KEY": os.environ.get("HDFC_RESPONSE_KEY"),
+    "RETURN_URL": os.environ.get("HDFC_RETURN_URL"),
+}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(
@@ -46,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'payment',
     'donation',
     'homepage',
     'who_we_are',
