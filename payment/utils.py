@@ -1,6 +1,7 @@
 """Utility helpers for the payment app."""
 
 import hmac, hashlib, jwt
+from datetime import datetime, timedelta, timezone
 from django.conf import settings
 
 
@@ -18,7 +19,12 @@ def jwt_auth_header() -> str:
     with open(key_path) as fh:
         private_key = fh.read()
 
+    now = datetime.now(timezone.utc)
     payload = {
+        "iss": settings.HDFC_SMART["PAYMENT_PAGE_CLIENT_ID"],
+        "aud": settings.HDFC_SMART["BASE_URL"],
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=5)).timestamp()),
         "key_uuid": settings.HDFC_SMART["KEY_UUID"],
         "payment_page_client_id": settings.HDFC_SMART["PAYMENT_PAGE_CLIENT_ID"],
     }
