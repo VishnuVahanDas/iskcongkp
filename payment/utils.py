@@ -1,5 +1,6 @@
 """Utility helpers for the payment app."""
 
+import base64
 import hmac, hashlib, jwt, logging
 from datetime import datetime, timedelta, timezone
 from django.conf import settings
@@ -14,6 +15,27 @@ _PRIVATE_KEY = None
 _PRIVATE_KEY_PATH = None
 _PUBLIC_KEY = None
 _PUBLIC_KEY_PATH = None
+
+
+def basic_auth_header() -> str:
+    """Return the Basic Authorization header for HDFC SmartGateway.
+
+    The SmartGateway's REST APIs expect the merchant's API key to be
+    provided using HTTP Basic authentication.  We read the API key from
+    ``settings.HDFC_SMART["API_KEY"]`` and base64 encode it to build the
+    header value.  If the API key is missing the function raises
+    :class:`ImproperlyConfigured` and logs an error.
+    """
+
+    api_key = settings.HDFC_SMART.get("API_KEY")
+    if not api_key:
+        logger.error("HDFC SmartGateway API_KEY missing in settings")
+        raise ImproperlyConfigured(
+            "HDFC_SMART['API_KEY'] setting is required for basic auth"
+        )
+
+    encoded = base64.b64encode(api_key.encode()).decode()
+    return "Basic " + encoded
 
 
 def jwt_auth_header() -> str:
