@@ -72,22 +72,18 @@ class StartPaymentErrorTests(TestCase):
             status_code = 500
             text = "server error"
 
-        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
-            tmp.write("dummykey")
-
         settings_dict = {
             "BASE_URL": "https://example.com",
             "MERCHANT_ID": "merchant",
             "PAYMENT_PAGE_CLIENT_ID": "client",
-            "RESPONSE_KEY": "resp",
             "RETURN_URL": "https://example.com/return",
-            "PRIVATE_KEY_PATH": tmp.name,
-            "KEY_UUID": "uuid",
+            "API_KEY": "secret",
+            "CUSTOMER_ID": "cust",
+            "RESELLER_ID": "reseller",
         }
 
         with override_settings(HDFC_SMART=settings_dict), \
-            patch("payment.views.requests.post", return_value=FakeResponse()) as post, \
-            patch("jwt.encode", return_value="tok"):
+            patch("payment.views.requests.post", return_value=FakeResponse()) as post:
             with self.assertLogs("payment.views", level="ERROR") as cm:
                 resp = self.client.get("/payment/hdfc/start/?amount=100")
 
@@ -98,7 +94,14 @@ class StartPaymentErrorTests(TestCase):
 
         post.assert_called_once()
         headers = post.call_args.kwargs["headers"]
-        self.assertEqual(headers["Authorization"], "Bearer tok")
+        expected = base64.b64encode(b"secret").decode()
+        self.assertEqual(headers["Authorization"], f"Basic {expected}")
+        self.assertEqual(headers["x-merchantid"], "merchant")
+        self.assertEqual(headers["x-customerid"], "cust")
+        self.assertEqual(headers["x-resellerid"], "reseller")
+        payload = post.call_args.kwargs["json"]
+        self.assertIn("payment_page_client_id", payload)
+        self.assertIn("action", payload)
 
 
 class VerifyResponseJwtTests(TestCase):
