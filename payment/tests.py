@@ -1,6 +1,7 @@
 from django.test import TestCase, override_settings
 from unittest.mock import patch
 import tempfile
+import base64
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import jwt
@@ -15,6 +16,19 @@ class VerifyHmacTests(TestCase):
         with override_settings(HDFC_SMART={}):
             with self.assertRaises(ImproperlyConfigured):
                 utils.verify_hmac({}, "sig", [])
+
+
+class BasicAuthHeaderTests(TestCase):
+    def test_header_encodes_api_key(self):
+        with override_settings(HDFC_SMART={"API_KEY": "secret"}):
+            header = utils.basic_auth_header()
+        expected = base64.b64encode(b"secret").decode()
+        self.assertEqual(header, f"Basic {expected}")
+
+    def test_missing_api_key_raises(self):
+        with override_settings(HDFC_SMART={}):
+            with self.assertRaises(ImproperlyConfigured):
+                utils.basic_auth_header()
 
 
 class JwtAuthHeaderTests(TestCase):
