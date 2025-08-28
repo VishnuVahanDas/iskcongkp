@@ -36,7 +36,7 @@ def start_payment(request):
     # Confirm exact keys from your sample project page.
     payload = {
         "merchant_id": settings.HDFC_SMART["MERCHANT_ID"],
-        "client_id": settings.HDFC_SMART["CLIENT_ID"],  # 'hdfcmaster' in UAT
+        "client_id": settings.HDFC_SMART["PAYMENT_PAGE_CLIENT_ID"],  # 'hdfcmaster' in UAT
         "order_id": order.order_id,
         "amount": str(order.amount),
         "currency": "INR",
