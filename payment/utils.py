@@ -3,11 +3,24 @@ import base64, hmac, hashlib
 from django.conf import settings
 
 def basic_auth_header():
-    # SmartGateway expects Authorization: Basic <base64(API_KEY)>
-    # i.e., encode the API key itself (not "user:pass")
-    # Ref: API docs “BasicAuth – Session” 
-    api_key = settings.HDFC_SMART["API_KEY"].encode()
-    return "Basic " + base64.b64encode(api_key).decode()
+    """Return Authorization header for HDFC SmartGateway.
+
+    The gateway expects a Basic auth header where the string
+    ``<CLIENT_ID>:<API_KEY>`` (or ``<API_KEY>:`` if client ID is not
+    required) is Base64 encoded.  Previously we encoded only the API key
+    itself which resulted in an incorrect header when a client ID was
+    needed.
+    """
+
+    api_key = settings.HDFC_SMART["API_KEY"] or ""
+    client_id = settings.HDFC_SMART.get("CLIENT_ID")
+
+    if client_id:
+        token = f"{client_id}:{api_key}"
+    else:
+        token = f"{api_key}:"
+
+    return "Basic " + base64.b64encode(token.encode()).decode()
 
 def verify_hmac(payload: dict, received_sig: str, fields_in_mac: list) -> bool:
     """
