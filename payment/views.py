@@ -55,18 +55,25 @@ def start_payment(request):
     try:
         r = requests.post(_session_url(), json=payload, headers=headers, timeout=20)
     except requests.RequestException:
-        logger.exception("HDFC session creation request failed: payload=%s", payload)
+        logger.exception(
+            "HDFC session creation request failed for order_id=%s: payload=%s",
+            order.order_id,
+            payload,
+        )
         return HttpResponseBadRequest(
             f"Could not create payment session. Reference ID: {order.order_id}"
         )
 
     if r.status_code != 200:
         logger.error(
-            "HDFC session creation failed: payload=%s status=%s text=%s",
-            payload,
+            "HDFC session creation failed for order_id=%s: status=%s text=%s",
+            order.order_id,
             r.status_code,
             r.text,
         )
+        order.raw_req = payload
+        order.raw_resp = {"status_code": r.status_code, "text": r.text}
+        order.save(update_fields=["raw_req", "raw_resp"])
         return HttpResponseBadRequest(
             f"Could not create payment session. Reference ID: {order.order_id}"
         )
@@ -83,7 +90,8 @@ def start_payment(request):
     if not payment_link:
         msg = inner.get("message") or data.get("message") or "Redirect URL missing in response"
         logger.error(
-            "HDFC response missing redirect URL: payload=%s status=%s text=%s",
+            "HDFC response missing redirect URL for order_id=%s: payload=%s status=%s text=%s",
+            order.order_id,
             payload,
             r.status_code,
             r.text,
