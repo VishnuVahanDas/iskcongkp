@@ -1,53 +1,41 @@
-import base64
-
 from django.test import TestCase, override_settings
 from unittest.mock import patch
+import tempfile
 
 from . import utils
 from .models import Order
 
 
-class BasicAuthHeaderTests(TestCase):
-    """Tests for the ``basic_auth_header`` helper."""
+class JwtAuthHeaderTests(TestCase):
+    """Tests for the ``jwt_auth_header`` helper."""
 
-    @override_settings(
-        HDFC_SMART={
-            "BASE_URL": "https://example.com",
-            "API_KEY": "api",
-            "MERCHANT_ID": "merchant",
-            "CLIENT_ID": "client",
-            "RESPONSE_KEY": "resp",
-            "RETURN_URL": "https://example.com/return",
-        }
-    )
-    def test_header_with_client_id(self):
-        """Auth header uses ``client_id:api_key`` when client ID provided."""
+    def test_header_signs_with_private_key(self):
+        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+            tmp.write("dummykey")
+        with override_settings(
+            HDFC_SMART={
+                "PRIVATE_KEY_PATH": tmp.name,
+                "KEY_UUID": "uuid",
+                "PAYMENT_PAGE_CLIENT_ID": "client",
+            }
+        ), patch("jwt.encode", return_value="tok") as encode:
+            header = utils.jwt_auth_header()
 
-        expected = "Basic " + base64.b64encode(b"client:api").decode()
-        self.assertEqual(utils.basic_auth_header(), expected)
-
-    @override_settings(
-        HDFC_SMART={
-            "BASE_URL": "https://example.com",
-            "API_KEY": "api",
-            "MERCHANT_ID": "merchant",
-            "CLIENT_ID": "",
-            "RESPONSE_KEY": "resp",
-            "RETURN_URL": "https://example.com/return",
-        }
-    )
-    def test_header_without_client_id(self):
-        """Auth header falls back to ``api_key:`` when client ID missing."""
-
-        expected = "Basic " + base64.b64encode(b"api:").decode()
-        self.assertEqual(utils.basic_auth_header(), expected)
+        encode.assert_called_once_with(
+            {
+                "key_uuid": "uuid",
+                "payment_page_client_id": "client",
+            },
+            "dummykey",
+            algorithm="RS256",
+        )
+        self.assertEqual(header, "Bearer tok")
  
 
 class StartPaymentErrorTests(TestCase):
     @override_settings(
         HDFC_SMART={
             "BASE_URL": "https://example.com",
-            "API_KEY": "api",
             "MERCHANT_ID": "merchant",
             "CLIENT_ID": "client",
             "RESPONSE_KEY": "resp",
@@ -59,7 +47,8 @@ class StartPaymentErrorTests(TestCase):
             status_code = 500
             text = "server error"
 
-        with patch("payment.views.requests.post", return_value=FakeResponse()):
+        with patch("payment.views.requests.post", return_value=FakeResponse()), \
+            patch("payment.views.jwt_auth_header", return_value="Bearer tok"):
             with self.assertLogs("payment.views", level="ERROR") as cm:
                 resp = self.client.get("/payment/hdfc/start/?amount=100")
 
