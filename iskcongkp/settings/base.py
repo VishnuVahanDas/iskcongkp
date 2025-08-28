@@ -27,6 +27,8 @@ HDFC_SMART = {
     "RESPONSE_KEY": os.environ.get("HDFC_RESPONSE_KEY"),
     "RETURN_URL": os.environ.get("HDFC_RETURN_URL"),
     "API_KEY": os.environ.get("HDFC_API_KEY"),
+    "CUSTOMER_ID": os.environ.get("HDFC_CUSTOMER_ID"),
+    "RESELLER_ID": os.environ.get("HDFC_RESELLER_ID"),
 }
 
 _required_hdfc_keys = [

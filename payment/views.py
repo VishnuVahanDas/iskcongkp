@@ -6,7 +6,7 @@ from django.http import HttpResponseBadRequest
 from django.conf import settings
 from django.db import transaction
 from .models import Order
-from .utils import jwt_auth_header, verify_hmac, verify_response_jwt
+from .utils import basic_auth_header, verify_hmac, verify_response_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +36,11 @@ def start_payment(request):
     # Confirm exact keys from your sample project page.
     payload = {
         "merchant_id": settings.HDFC_SMART["MERCHANT_ID"],
-        "client_id": settings.HDFC_SMART["PAYMENT_PAGE_CLIENT_ID"],  # 'hdfcmaster' in UAT
+        "payment_page_client_id": settings.HDFC_SMART["PAYMENT_PAGE_CLIENT_ID"],
         "order_id": order.order_id,
         "amount": str(order.amount),
         "currency": "INR",
+        "action": "SALE",
         "customer": {
             "first_name": request.GET.get("name", "Guest"),
             "email": request.GET.get("email", "guest@example.com"),
@@ -49,8 +50,11 @@ def start_payment(request):
     }
 
     headers = {
-        "Authorization": jwt_auth_header(),
+        "Authorization": basic_auth_header(),
         "Content-Type": "application/json",
+        "x-merchantid": settings.HDFC_SMART["MERCHANT_ID"],
+        "x-customerid": settings.HDFC_SMART.get("CUSTOMER_ID", ""),
+        "x-resellerid": settings.HDFC_SMART.get("RESELLER_ID", ""),
     }
     try:
         r = requests.post(_session_url(), json=payload, headers=headers, timeout=20)
@@ -82,7 +86,7 @@ def start_payment(request):
 
     # Extract redirect URL from nested data per HDFC API
     inner = data.get("data") or {}
-    payment_link = inner.get("redirectUrl")
+    payment_link = inner.get("redirectUrl") or data.get("redirectUrl")
     order.gateway_order_id = inner.get("orderId") or data.get("order_id") or data.get("bank_order_id")
     order.raw_req, order.raw_resp = payload, data
     order.save(update_fields=["gateway_order_id", "raw_req", "raw_resp"])
