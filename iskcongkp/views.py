@@ -1,8 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
-from django.contrib.auth.forms import AuthenticationForm
 
-from .forms import SignUpForm
+from .forms import SignInForm, SignUpForm
 
 def contact_view(request):
     return render(request, 'contact.html')
@@ -36,12 +35,12 @@ def signup_view(request):
 
 def signin_view(request):
     if request.method == "POST":
-        form = AuthenticationForm(request, data=request.POST)
+        form = SignInForm(request, data=request.POST)
         if form.is_valid():
             login(request, form.get_user())
             return redirect("homepage:homepage")
     else:
-        form = AuthenticationForm()
+        form = SignInForm()
     return render(request, "signin.html", {"form": form})
 
 
