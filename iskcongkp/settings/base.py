@@ -19,14 +19,25 @@ load_dotenv()
 
 HDFC_SMART = {
     "BASE_URL": os.environ.get("HDFC_BASE_URL", "https://smartgatewayuat.hdfcbank.com"),
-    "API_KEY": os.environ.get("HDFC_API_KEY"),
+    "PRIVATE_KEY_PATH": os.environ.get("HDFC_PRIVATE_KEY_PATH"),
+    "PUBLIC_KEY_PATH": os.environ.get("HDFC_PUBLIC_KEY_PATH"),
+    "KEY_UUID": os.environ.get("HDFC_KEY_UUID"),
+    "PAYMENT_PAGE_CLIENT_ID": os.environ.get("HDFC_PAYMENT_PAGE_CLIENT_ID"),
     "MERCHANT_ID": os.environ.get("HDFC_MERCHANT_ID"),
-    "CLIENT_ID": os.environ.get("HDFC_CLIENT_ID"),  # 'hdfcmaster' on UAT
     "RESPONSE_KEY": os.environ.get("HDFC_RESPONSE_KEY"),
     "RETURN_URL": os.environ.get("HDFC_RETURN_URL"),
 }
 
-_required_hdfc_keys = ["BASE_URL", "API_KEY", "MERCHANT_ID", "CLIENT_ID", "RESPONSE_KEY", "RETURN_URL"]
+_required_hdfc_keys = [
+    "BASE_URL",
+    "MERCHANT_ID",
+    "PRIVATE_KEY_PATH",
+    "PUBLIC_KEY_PATH",
+    "KEY_UUID",
+    "PAYMENT_PAGE_CLIENT_ID",
+    "RESPONSE_KEY",
+    "RETURN_URL",
+]
 _missing_hdfc_keys = [k for k in _required_hdfc_keys if not HDFC_SMART.get(k)]
 if _missing_hdfc_keys:
     raise ImproperlyConfigured(
