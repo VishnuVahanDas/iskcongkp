@@ -6,7 +6,7 @@ from django.http import HttpResponseBadRequest
 from django.conf import settings
 from django.db import transaction
 from .models import Order
-from .utils import jwt_auth_header, verify_hmac
+from .utils import jwt_auth_header, verify_hmac, verify_response_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +117,12 @@ def hdfc_return(request):
     mac_payload = {k: data.get(k, "") for k in FIELDS_IN_MAC}
 
     valid = verify_hmac(mac_payload, received_sig, FIELDS_IN_MAC)
+
+    jwt_token = data.get("jwt") or data.get("token") or data.get("signed_response")
+    if jwt_token:
+        if not verify_response_jwt(jwt_token):
+            logger.warning("Invalid JWT signature from HDFC for order_id=%s", data.get("order_id"))
+            valid = False
 
     order_id = data.get("order_id")
     if not order_id:
