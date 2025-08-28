@@ -41,6 +41,9 @@ _required_hdfc_keys = [
     "PAYMENT_PAGE_CLIENT_ID",
     "RESPONSE_KEY",
     "RETURN_URL",
+    "API_KEY",
+    "CUSTOMER_ID",
+    "RESELLER_ID",
 ]
 _missing_hdfc_keys = [k for k in _required_hdfc_keys if not HDFC_SMART.get(k)]
 if _missing_hdfc_keys:
