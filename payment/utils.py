@@ -40,3 +40,23 @@ def verify_hmac(payload: dict, received_sig: str, fields_in_mac: list) -> bool:
     msg = "|".join("" if payload.get(k) is None else str(payload[k]) for k in fields_in_mac).encode()
     expected = hmac.new(secret, msg, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, (received_sig or "").strip())
+
+
+def verify_response_jwt(token: str):
+    """Verify a JWT response from HDFC using the configured public key.
+
+    The SmartGateway may return certain responses as a JWT signed with
+    HDFC's private key.  We load the corresponding public key from
+    ``settings.HDFC_SMART["PUBLIC_KEY_PATH"]`` and attempt to decode the
+    token using RS256.  The decoded payload is returned on success; if the
+    token cannot be verified ``None`` is returned.
+    """
+
+    key_path = settings.HDFC_SMART["PUBLIC_KEY_PATH"]
+    with open(key_path) as fh:
+        public_key = fh.read()
+
+    try:
+        return jwt.decode(token, public_key, algorithms=["RS256"])
+    except jwt.PyJWTError:
+        return None

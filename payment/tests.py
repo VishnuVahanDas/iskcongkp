@@ -2,6 +2,8 @@ from django.test import TestCase, override_settings
 from unittest.mock import patch
 import tempfile
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+import jwt
 
 from . import utils
 from .models import Order
@@ -75,3 +77,61 @@ class StartPaymentErrorTests(TestCase):
         post.assert_called_once()
         headers = post.call_args.kwargs["headers"]
         self.assertEqual(headers["Authorization"], "Bearer tok")
+
+
+class VerifyResponseJwtTests(TestCase):
+    def test_verifies_with_public_key(self):
+        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+            tmp.write("pubkey")
+        with override_settings(HDFC_SMART={"PUBLIC_KEY_PATH": tmp.name}), patch(
+            "jwt.decode", return_value={"ok": True}
+        ) as decode:
+            payload = utils.verify_response_jwt("tok")
+        decode.assert_called_once_with("tok", "pubkey", algorithms=["RS256"])
+        self.assertEqual(payload, {"ok": True})
+
+    def test_returns_none_on_error(self):
+        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+            tmp.write("pubkey")
+        with override_settings(HDFC_SMART={"PUBLIC_KEY_PATH": tmp.name}), patch(
+            "jwt.decode", side_effect=jwt.PyJWTError
+        ):
+            self.assertIsNone(utils.verify_response_jwt("tok"))
+
+
+class HdfcReturnJwtVerificationTests(TestCase):
+    def setUp(self):
+        self.order = Order.objects.create(order_id="ORD1", amount=Decimal("100.00"), status="processing")
+
+    def test_invalid_jwt_marks_failed(self):
+        data = {
+            "merchant_id": "m",
+            "order_id": self.order.order_id,
+            "amount": "100.00",
+            "status": "SUCCESS",
+            "signature": "sig",
+            "jwt": "tok",
+        }
+        with patch("payment.views.verify_hmac", return_value=True), patch(
+            "payment.views.verify_response_jwt", return_value=None
+        ) as verify_jwt:
+            self.client.post("/payment/hdfc/return/", data)
+        verify_jwt.assert_called_once_with("tok")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "failed")
+
+    def test_valid_jwt_marks_paid(self):
+        data = {
+            "merchant_id": "m",
+            "order_id": self.order.order_id,
+            "amount": "100.00",
+            "status": "SUCCESS",
+            "signature": "sig",
+            "jwt": "tok",
+        }
+        with patch("payment.views.verify_hmac", return_value=True), patch(
+            "payment.views.verify_response_jwt", return_value={}
+        ):
+            self.client.post("/payment/hdfc/return/", data)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "paid")
