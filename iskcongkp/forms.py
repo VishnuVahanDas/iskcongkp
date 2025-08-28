@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
@@ -26,4 +26,15 @@ class SignUpForm(UserCreationForm):
         if User.objects.filter(username=username).exists():
             raise ValidationError("A user with that username already exists.")
         return username
+
+
+class SignInForm(AuthenticationForm):
+    """Authentication form with Bootstrap styling."""
+
+    username = forms.CharField(
+        widget=forms.TextInput(attrs={"class": "form-control", "required": True})
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control", "required": True})
+    )
 
