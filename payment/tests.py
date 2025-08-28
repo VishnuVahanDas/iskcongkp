@@ -33,22 +33,27 @@ class JwtAuthHeaderTests(TestCase):
  
 
 class StartPaymentErrorTests(TestCase):
-    @override_settings(
-        HDFC_SMART={
-            "BASE_URL": "https://example.com",
-            "MERCHANT_ID": "merchant",
-            "PAYMENT_PAGE_CLIENT_ID": "client",
-            "RESPONSE_KEY": "resp",
-            "RETURN_URL": "https://example.com/return",
-        }
-    )
     def test_non_200_response_saved_to_order(self):
         class FakeResponse:
             status_code = 500
             text = "server error"
 
-        with patch("payment.views.requests.post", return_value=FakeResponse()), \
-            patch("payment.views.jwt_auth_header", return_value="Bearer tok"):
+        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+            tmp.write("dummykey")
+
+        settings_dict = {
+            "BASE_URL": "https://example.com",
+            "MERCHANT_ID": "merchant",
+            "PAYMENT_PAGE_CLIENT_ID": "client",
+            "RESPONSE_KEY": "resp",
+            "RETURN_URL": "https://example.com/return",
+            "PRIVATE_KEY_PATH": tmp.name,
+            "KEY_UUID": "uuid",
+        }
+
+        with override_settings(HDFC_SMART=settings_dict), \
+            patch("payment.views.requests.post", return_value=FakeResponse()) as post, \
+            patch("jwt.encode", return_value="tok"):
             with self.assertLogs("payment.views", level="ERROR") as cm:
                 resp = self.client.get("/payment/hdfc/start/?amount=100")
 
@@ -56,3 +61,7 @@ class StartPaymentErrorTests(TestCase):
         order = Order.objects.get()
         self.assertEqual(order.raw_resp, {"status_code": 500, "text": "server error"})
         self.assertIn(order.order_id, cm.output[0])
+
+        post.assert_called_once()
+        headers = post.call_args.kwargs["headers"]
+        self.assertEqual(headers["Authorization"], "Bearer tok")
