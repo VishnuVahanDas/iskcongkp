@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#">
+<head>
+    {% include 'head.html' %}
+    <title>Sign Up | ISKCON Gorakhpur</title>
+</head>
+<body class="layout-no-sidebars path-contact-usk node--type-page">
+    <a href="#main-content" class="visually-hidden-focusable">
+        Skip to main content
+    </a>
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5RKQZD47" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+    <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+        <div id="page-wrapper">
+            <div id="page">
+                {% include 'navbar.html' %}
+                <div class="highlighted">
+                    <aside class="container section clearfix" role="complementary">
+                        <div data-drupal-messages-fallback class="hidden"></div>
+                    </aside>
+                </div>
+                <div id="main-wrapper" class="layout-main-wrapper clearfix">
+                    <div id="main" class="container">
+                        <div class="row row-offcanvas row-offcanvas-left clearfix">
+                            <main class="main-content col" id="content" role="main">
+                                <section class="section">
+                                    <a href="#main-content" id="main-content" tabindex="-1"></a>
+                                    <div id="block-akara-page-title" class="block block-core block-page-title-block">
+                                        <div class="content">
+                                            <h1 class="title"><span class="field field--name-title field--type-string field--label-hidden">Sign Up</span></h1>
+                                        </div>
+                                    </div>
+                                    <div id="block-akara-content" class="block block-system block-system-main-block">
+                                        <div class="content">
+                                            <article role="article" class="node node--type-page node--view-mode-full clearfix">
+                                                <div class="node__content clearfix">
+                                                    <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item">
+                                                        <div class="col-xs-12 col-sm-12 col-md-12" style="display:flex;flex-wrap:wrap;text-align:center;">
+                                                            <div class="col-xs-12 col-sm-12 col-md-5" style="margin:0 auto;">
+                                                                <form method="post">
+                                                                    {% csrf_token %}
+                                                                    {{ form.as_p }}
+                                                                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                                                                </form>
+                                                                <p class="mt-3">Already have an account? <a href="{% url 'login' %}">Sign in</a>.</p>
+                                                            </div>
+                                                            <div class="col-xs-12 col-sm-12 col-md-5">
+                                                                <div class="align-right">
+                                                                    <div class="field field--name-field-media-image field--type-image field--label-visually_hidden">
+                                                                        <div class="field__item">
+                                                                            <picture>
+                                                                                <img src="{% static 'sites/krishna_help.png' %}" alt="Krishna Helping Devotees" />
+                                                                            </picture>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </div>
+                                    </div>
+                                </section>
+                            </main>
+                        </div>
+                    </div>
+                </div>
+                {% include 'footer.html' %}
+            </div>
+        </div>
+    </div>
+    {% include 'body_script.html' %}
+</body>
+</html>
