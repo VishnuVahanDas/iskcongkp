@@ -1,26 +1,29 @@
-# payment/utils.py
-import base64, hmac, hashlib
+"""Utility helpers for the payment app."""
+
+import hmac, hashlib, jwt
 from django.conf import settings
 
-def basic_auth_header():
-    """Return Authorization header for HDFC SmartGateway.
 
-    The gateway expects a Basic auth header where the string
-    ``<CLIENT_ID>:<API_KEY>`` (or ``<API_KEY>:`` if client ID is not
-    required) is Base64 encoded.  Previously we encoded only the API key
-    itself which resulted in an incorrect header when a client ID was
-    needed.
+def jwt_auth_header() -> str:
+    """Return the Bearer Authorization header for HDFC SmartGateway.
+
+    The SmartGateway expects a JWT signed with the merchant's private
+    key.  We read the private key from ``settings.HDFC_SMART["PRIVATE_KEY_PATH"]``
+    and sign a payload containing ``KEY_UUID`` and ``PAYMENT_PAGE_CLIENT_ID``
+    using the RS256 algorithm.  The resulting token is returned as a
+    ``Bearer`` header value.
     """
 
-    api_key = settings.HDFC_SMART["API_KEY"] or ""
-    client_id = settings.HDFC_SMART.get("CLIENT_ID")
+    key_path = settings.HDFC_SMART["PRIVATE_KEY_PATH"]
+    with open(key_path) as fh:
+        private_key = fh.read()
 
-    if client_id:
-        token = f"{client_id}:{api_key}"
-    else:
-        token = f"{api_key}:"
-
-    return "Basic " + base64.b64encode(token.encode()).decode()
+    payload = {
+        "key_uuid": settings.HDFC_SMART["KEY_UUID"],
+        "payment_page_client_id": settings.HDFC_SMART["PAYMENT_PAGE_CLIENT_ID"],
+    }
+    token = jwt.encode(payload, private_key, algorithm="RS256")
+    return "Bearer " + token
 
 def verify_hmac(payload: dict, received_sig: str, fields_in_mac: list) -> bool:
     """

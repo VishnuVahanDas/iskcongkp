@@ -6,7 +6,7 @@ from django.http import HttpResponseBadRequest
 from django.conf import settings
 from django.db import transaction
 from .models import Order
-from .utils import basic_auth_header, verify_hmac
+from .utils import jwt_auth_header, verify_hmac
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def start_payment(request):
     }
 
     headers = {
-        "Authorization": basic_auth_header(),
+        "Authorization": jwt_auth_header(),
         "Content-Type": "application/json",
     }
     try:
