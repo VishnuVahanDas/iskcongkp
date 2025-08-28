@@ -4,9 +4,17 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import jwt
+from django.core.exceptions import ImproperlyConfigured
 
 from . import utils
 from .models import Order
+
+
+class VerifyHmacTests(TestCase):
+    def test_missing_response_key_raises(self):
+        with override_settings(HDFC_SMART={}):
+            with self.assertRaises(ImproperlyConfigured):
+                utils.verify_hmac({}, "sig", [])
 
 
 class JwtAuthHeaderTests(TestCase):
@@ -130,7 +138,7 @@ class HdfcReturnJwtVerificationTests(TestCase):
             "jwt": "tok",
         }
         with patch("payment.views.verify_hmac", return_value=True), patch(
-            "payment.views.verify_response_jwt", return_value={}
+            "payment.views.verify_response_jwt", return_value={"ok": True}
         ):
             self.client.post("/payment/hdfc/return/", data)
         self.order.refresh_from_db()
