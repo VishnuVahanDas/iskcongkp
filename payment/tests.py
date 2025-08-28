@@ -1,6 +1,7 @@
 from django.test import TestCase, override_settings
 from unittest.mock import patch
 import tempfile
+from datetime import datetime, timedelta, timezone
 
 from . import utils
 from .models import Order
@@ -12,17 +13,26 @@ class JwtAuthHeaderTests(TestCase):
     def test_header_signs_with_private_key(self):
         with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
             tmp.write("dummykey")
+        fixed_now = datetime(2024, 1, 1, tzinfo=timezone.utc)
         with override_settings(
             HDFC_SMART={
                 "PRIVATE_KEY_PATH": tmp.name,
                 "KEY_UUID": "uuid",
                 "PAYMENT_PAGE_CLIENT_ID": "client",
+                "BASE_URL": "https://example.com",
             }
-        ), patch("jwt.encode", return_value="tok") as encode:
+        ), patch("jwt.encode", return_value="tok") as encode, patch(
+            "payment.utils.datetime"
+        ) as mock_dt:
+            mock_dt.now.return_value = fixed_now
             header = utils.jwt_auth_header()
 
         encode.assert_called_once_with(
             {
+                "iss": "client",
+                "aud": "https://example.com",
+                "iat": int(fixed_now.timestamp()),
+                "exp": int((fixed_now + timedelta(minutes=5)).timestamp()),
                 "key_uuid": "uuid",
                 "payment_page_client_id": "client",
             },
