@@ -37,7 +37,7 @@ class StartPaymentErrorTests(TestCase):
         HDFC_SMART={
             "BASE_URL": "https://example.com",
             "MERCHANT_ID": "merchant",
-            "CLIENT_ID": "client",
+            "PAYMENT_PAGE_CLIENT_ID": "client",
             "RESPONSE_KEY": "resp",
             "RETURN_URL": "https://example.com/return",
         }
