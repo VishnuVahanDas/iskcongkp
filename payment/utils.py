@@ -9,6 +9,13 @@ from django.core.exceptions import ImproperlyConfigured
 logger = logging.getLogger(__name__)
 
 
+# Cache keys at module level to avoid repeated disk reads
+_PRIVATE_KEY = None
+_PRIVATE_KEY_PATH = None
+_PUBLIC_KEY = None
+_PUBLIC_KEY_PATH = None
+
+
 def jwt_auth_header() -> str:
     """Return the Bearer Authorization header for HDFC SmartGateway.
 
@@ -20,8 +27,13 @@ def jwt_auth_header() -> str:
     """
 
     key_path = settings.HDFC_SMART["PRIVATE_KEY_PATH"]
-    with open(key_path) as fh:
-        private_key = fh.read()
+    global _PRIVATE_KEY, _PRIVATE_KEY_PATH
+    if _PRIVATE_KEY is None or _PRIVATE_KEY_PATH != key_path:
+        with open(key_path) as fh:
+            _PRIVATE_KEY = fh.read()
+        _PRIVATE_KEY_PATH = key_path
+
+    private_key = _PRIVATE_KEY
 
     now = datetime.now(timezone.utc)
     payload = {
@@ -72,8 +84,13 @@ def verify_response_jwt(token: str):
     """
 
     key_path = settings.HDFC_SMART["PUBLIC_KEY_PATH"]
-    with open(key_path) as fh:
-        public_key = fh.read()
+    global _PUBLIC_KEY, _PUBLIC_KEY_PATH
+    if _PUBLIC_KEY is None or _PUBLIC_KEY_PATH != key_path:
+        with open(key_path) as fh:
+            _PUBLIC_KEY = fh.read()
+        _PUBLIC_KEY_PATH = key_path
+
+    public_key = _PUBLIC_KEY
 
     try:
         return jwt.decode(token, public_key, algorithms=["RS256"])
