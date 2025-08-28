@@ -1,8 +1,12 @@
 """Utility helpers for the payment app."""
 
-import hmac, hashlib, jwt
+import hmac, hashlib, jwt, logging
 from datetime import datetime, timedelta, timezone
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+
+
+logger = logging.getLogger(__name__)
 
 
 def jwt_auth_header() -> str:
@@ -33,11 +37,26 @@ def jwt_auth_header() -> str:
 
 def verify_hmac(payload: dict, received_sig: str, fields_in_mac: list) -> bool:
     """
-    Build the HMAC string from the same fields (in order) that SmartGateway signed.
-    You configure fields_in_mac from the doc/sample (common: order_id, amount, status, merchant_id).
+    Build the HMAC string from the same fields (in order) that SmartGateway
+    signed. You configure ``fields_in_mac`` from the doc/sample (common:
+    ``order_id``, ``amount``, ``status``, ``merchant_id``).
+
+    If ``settings.HDFC_SMART['RESPONSE_KEY']`` is missing, the function
+    raises :class:`ImproperlyConfigured` and logs an error before computing
+    the HMAC.
     """
-    secret = (settings.HDFC_SMART["RESPONSE_KEY"] or "").encode()
-    msg = "|".join("" if payload.get(k) is None else str(payload[k]) for k in fields_in_mac).encode()
+
+    secret = settings.HDFC_SMART.get("RESPONSE_KEY")
+    if not secret:
+        logger.error("HDFC SmartGateway RESPONSE_KEY missing in settings")
+        raise ImproperlyConfigured(
+            "HDFC_SMART['RESPONSE_KEY'] setting is required to verify HMAC"
+        )
+
+    secret = secret.encode()
+    msg = "|".join(
+        "" if payload.get(k) is None else str(payload[k]) for k in fields_in_mac
+    ).encode()
     expected = hmac.new(secret, msg, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, (received_sig or "").strip())
 
