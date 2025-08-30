@@ -30,7 +30,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 #DEBUG = True
 ALLOWED_HOSTS = ["iskcongorakhpur.com"]
 
-CSRF_TRUSTED_ORIGINS = ["https://iskcongorakhpur.com"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://iskcongorakhpur.com"
+    "https://smartgateway.hdfcbank.com",
+    "https://smartgatewayuat.hdfcbank.com",
+    "https://*.juspay.in",
+]
 
 # Application definition
 

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Payment Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    .card { max-width: 720px; margin: auto; padding: 1.25rem; border: 1px solid #ddd; border-radius: 12px; }
+    .row { margin: .5rem 0; }
+    input, button { padding: .5rem .75rem; }
+    pre { background: #fafafa; padding: .75rem; border-radius: 8px; overflow:auto;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Thank you. Verifying your payment…</h2>
+
+    <div id="auto-note" class="row">If we can find your last order from cookies, we’ll check it automatically.</div>
+
+    <div class="row">
+      <label>Order ID: <input id="orderId" placeholder="e.g. ProdSmoke08301145" /></label>
+    </div>
+    <div class="row">
+      <label>Customer ID: <input id="customerId" placeholder="e.g. cust-prod-0001" /></label>
+    </div>
+    <div class="row">
+      <button id="checkBtn">Check Status</button>
+    </div>
+
+    <div class="row" id="result"></div>
+    <pre id="raw" hidden></pre>
+  </div>
+
+  <script>
+    function readCookie(name) {
+      const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return m ? decodeURIComponent(m[2]) : '';
+    }
+
+    async function check(orderId, customerId) {
+      const resEl = document.getElementById('result');
+      const rawEl = document.getElementById('raw');
+      resEl.textContent = 'Checking…';
+      rawEl.hidden = true;
+
+      try {
+        const resp = await fetch(`/payments/status/${encodeURIComponent(orderId)}?customer_id=${encodeURIComponent(customerId)}`);
+        const data = await resp.json();
+        if (data.ok) {
+          const paid = data.is_paid ? '✅ CHARGED (PAID)' : `❓ ${data.data?.status || 'UNKNOWN'}`;
+          resEl.textContent = `Order ${orderId}: ${paid}`;
+          rawEl.textContent = JSON.stringify(data, null, 2);
+          rawEl.hidden = false;
+        } else {
+          resEl.textContent = 'Error: ' + (data.error || 'Unknown');
+        }
+      } catch (e) {
+        resEl.textContent = 'Network error: ' + e.message;
+      }
+    }
+
+    // Try to auto-fill from cookies (set by your app when creating session)
+    const cid = readCookie('hdfc_customer_id');
+    const oid = readCookie('hdfc_last_order_id');
+    if (cid && oid) {
+      document.getElementById('orderId').value = oid;
+      document.getElementById('customerId').value = cid;
+      check(oid, cid);
+    }
+
+    document.getElementById('checkBtn').addEventListener('click', () => {
+      const orderId = document.getElementById('orderId').value.trim();
+      const customerId = document.getElementById('customerId').value.trim();
+      if (!orderId || !customerId) { alert('Enter Order ID and Customer ID'); return; }
+      check(orderId, customerId);
+    });
+  </script>
+</body>
+</html>
