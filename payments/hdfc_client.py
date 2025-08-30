@@ -1,14 +1,17 @@
 # payments/hdfc_client.py
 import os, json, time, uuid
+import logging
 import requests
 from decimal import Decimal
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from requests.auth import HTTPBasicAuth
 from jwcrypto import jwk, jwe, jws
 from jwcrypto.common import json_encode
 
 COMMON_HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
 basic_auth = HTTPBasicAuth(settings.HDFC_MERCHANT_ID, settings.HDFC_API_KEY)
+logger = logging.getLogger(__name__)
 
 # ---------- Key loaders ----------
 def _load_priv() -> jwk.JWK:
@@ -120,7 +123,18 @@ def create_session(payload: dict) -> dict:
     jwe_token = _encrypt_jwe(jws_token)
     url = f"{settings.HDFC_BASE_URL}/v4/session"
     resp = requests.post(url, json={"jwt": jwe_token}, headers=COMMON_HEADERS, timeout=30)
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 401:
+            try:
+                body = exc.response.json()
+            except ValueError:
+                body = exc.response.text
+            logger.error("HDFC credentials rejected: %s", body)
+            raise ImproperlyConfigured(f"HDFC credentials rejected: {body}") from exc
+        logger.error("Error creating HDFC session: %s", exc)
+        raise
 
     data = resp.json()
     # If encrypted response, decrypt & verify:
