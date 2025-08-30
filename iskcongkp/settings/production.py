@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 import os.path
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +25,10 @@ HDFC_REFUND_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}/refunds"
 
 HDFC_MERCHANT_ID = os.getenv("HDFC_MERCHANT_ID")
 HDFC_API_KEY = os.getenv("HDFC_API_KEY")
+if not HDFC_MERCHANT_ID:
+    raise ImproperlyConfigured("HDFC_MERCHANT_ID environment variable is required")
+if not HDFC_API_KEY:
+    raise ImproperlyConfigured("HDFC_API_KEY environment variable is required")
 HDFC_RETURN_URL= "https://iskcongorakhpur.com/payments/return"
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
