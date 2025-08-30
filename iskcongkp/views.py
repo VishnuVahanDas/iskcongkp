@@ -35,7 +35,7 @@ def signup_view(request):
 
 def signin_view(request):
     if request.method == "POST":
-        form = SignInForm(request, data=request.POST)
+        form = SignInForm(request.POST)
         if form.is_valid():
             login(request, form.get_user())
             return redirect("homepage:homepage")

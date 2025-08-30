@@ -1,6 +1,8 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError, FieldError
+from django.core.validators import validate_email
 
 
 class SignUpForm(UserCreationForm):
@@ -48,13 +50,41 @@ class SignUpForm(UserCreationForm):
         return user
 
 
-class SignInForm(AuthenticationForm):
-    """Authentication form with Bootstrap styling."""
+class SignInForm(forms.Form):
+    """Authenticate using either email or phone identifier."""
 
-    username = forms.CharField(
-        widget=forms.TextInput(attrs={"class": "form-control", "required": True})
+    identifier = forms.CharField(
+        label="Email or phone",
+        widget=forms.TextInput(attrs={"class": "form-control", "required": True}),
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={"class": "form-control", "required": True})
     )
 
+    user_cache = None
+
+    def clean(self):
+        cleaned_data = super().clean()
+        identifier = cleaned_data.get("identifier")
+        password = cleaned_data.get("password")
+        user = None
+
+        if identifier and password:
+            try:
+                validate_email(identifier)
+                user = User.objects.filter(email__iexact=identifier).first()
+            except ValidationError:
+                try:
+                    user = User.objects.filter(mobile=identifier).first()
+                except FieldError:
+                    user = None
+
+            if not user or not user.check_password(password):
+                raise forms.ValidationError("Invalid credentials")
+
+            self.user_cache = user
+
+        return cleaned_data
+
+    def get_user(self):
+        return self.user_cache
