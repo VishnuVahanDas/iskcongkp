@@ -46,16 +46,22 @@ This repository contains the source code of a Django based website for ISKCON Go
 
 ## Environment variables
 
-The project expects two environment variables which can be placed in a `.env` file in the project root:
+The project expects the following environment variables which can be placed in a `.env` file in the project root:
 
 - `ENVIRONMENT_NAME` – selects the settings module. Set to `production` to use `iskcongkp.settings.production`, otherwise `iskcongkp.settings.base` is used.
 - `PASSWORD` – database password for the production settings file.
+- `HDFC_MERCHANT_ID` – merchant identifier for HDFC SmartGateway.
+- `HDFC_API_KEY` – API key for HDFC SmartGateway.
+
+Ensure `HDFC_MERCHANT_ID` and `HDFC_API_KEY` are configured in every environment where payments are processed.
 
 Example `.env`:
 
 ```ini
 ENVIRONMENT_NAME=production
 PASSWORD=your_db_password
+HDFC_MERCHANT_ID=your_merchant_id
+HDFC_API_KEY=your_api_key
 ```
 
 ## Running the site
