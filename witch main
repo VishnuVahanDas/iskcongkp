@@ -1,0 +1,195 @@
+*   [33m32be39d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mwip-2025-08-28[m[33m, [m[1;31morigin/wip-2025-08-28[m[33m, [m[1;31morigin/master[m[33m, [m[1;32mmaster[m[33m)[m Merge pull request #43 from VishnuVahanDas/verify-hdfc-api-configurations
+[31m|[m[32m\[m  
+[31m|[m * [33m0817b19[m Ensure HDFC config keys present
+[31m|[m[31m/[m  
+*   [33mb7f49bb[m Merge pull request #42 from VishnuVahanDas/update-start_payment-for-hdfc-compliance
+[33m|[m[34m\[m  
+[33m|[m * [33m096c244[m[33m ([m[1;31morigin/codex/update-start_payment-for-hdfc-compliance[m[33m)[m Switch HDFC session auth to basic and extend headers
+[33m|[m[33m/[m  
+*   [33m36ff3fb[m Merge pull request #41 from VishnuVahanDas/add-basic_auth_header-function
+[35m|[m[36m\[m  
+[35m|[m * [33m47a10c9[m Add HDFC SmartGateway basic auth helper
+[35m|[m[35m/[m  
+*   [33mecd1623[m Merge pull request #40 from VishnuVahanDas/add-module-level-cache-for-private-key
+[1;31m|[m[1;32m\[m  
+[1;31m|[m * [33m2a66f1f[m Cache HDFC key files to avoid repeated disk reads
+[1;31m|[m[1;31m/[m  
+*   [33m757becb[m Merge pull request #39 from VishnuVahanDas/check-for-response_key-in-verify_hmac
+[1;33m|[m[1;34m\[m  
+[1;33m|[m * [33m3a5f780[m Verify HDFC response key before HMAC and add tests
+[1;33m|[m[1;33m/[m  
+*   [33me727151[m Merge pull request #38 from VishnuVahanDas/add-hdfc-response-verification-function
+[1;35m|[m[1;36m\[m  
+[1;35m|[m * [33mbdc00e0[m Add HDFC response JWT verification
+[1;35m|[m[1;35m/[m  
+*   [33m6744a3d[m Merge pull request #37 from VishnuVahanDas/update-jwt_auth_header-for-token-claims
+[31m|[m[32m\[m  
+[31m|[m * [33m0999162[m Include JWT claims
+[31m|[m[31m/[m  
+*   [33mb7ec2f6[m Merge pull request #36 from VishnuVahanDas/add-cryptography-to-requirements
+[33m|[m[34m\[m  
+[33m|[m * [33ma6c7c70[m Install PyJWT with crypto extras for RS256
+[33m|[m[33m/[m  
+*   [33m5f53990[m Merge pull request #35 from VishnuVahanDas/update-hdfc-payment-module-key-retrieval
+[35m|[m[36m\[m  
+[35m|[m * [33m0a386d6[m[33m ([m[1;31morigin/codex/update-hdfc-payment-module-key-retrieval[m[33m)[m Remove obsolete HDFC AES helpers
+[35m|[m[35m/[m  
+*   [33m6a023f5[m Merge pull request #34 from VishnuVahanDas/update-hdfc_smart-tests-for-jwt
+[1;31m|[m[1;32m\[m  
+[1;31m|[m * [33m991c6aa[m test: check JWT auth header
+[1;31m|[m[1;31m/[m  
+*   [33m0fe0d1e[m Merge pull request #33 from VishnuVahanDas/update-payment-views-with-jwt-auth
+[1;33m|[m[1;34m\[m  
+[1;33m|[m * [33mda40b12[m Use JWT auth header and rename client id setting
+[1;33m|[m[1;33m/[m  
+*   [33mda73aae[m Merge pull request #32 from VishnuVahanDas/remove-basic_auth_header-and-add-jwt_auth_header
+[1;35m|[m[1;36m\[m  
+[1;35m|[m * [33mbe16d14[m Replace basic auth with JWT
+[1;35m|[m[1;35m/[m  
+*   [33ma8a181d[m Merge pull request #31 from VishnuVahanDas/update-hdfc-keys-in-settings
+[31m|[m[32m\[m  
+[31m|[m * [33mcaeb9cd[m Add HDFC key paths and UUID to settings
+[31m|[m[31m/[m  
+*   [33m1f0b5de[m Merge pull request #30 from VishnuVahanDas/save-response-on-non-200-status-in-payment
+[33m|[m[34m\[m  
+[33m|[m * [33mf5128b0[m Store HDFC error responses and register orders in admin
+[33m|[m[33m/[m  
+*   [33mb9fc62f[m Merge pull request #29 from VishnuVahanDas/update-basic_auth_header-encoding
+[35m|[m[36m\[m  
+[35m|[m * [33m4f0e989[m Encode client ID and API key for HDFC basic auth
+[35m|[m[35m/[m  
+*   [33m15cfbf3[m Merge pull request #28 from VishnuVahanDas/wrap-requests.post-in-try/except-block
+[1;31m|[m[1;32m\[m  
+[1;31m|[m * [33md07639c[m Handle request errors in start_payment
+[1;31m|[m[1;31m/[m  
+*   [33m4860c4d[m Merge pull request #27 from VishnuVahanDas/update-session-path-and-handle-response
+[1;33m|[m[1;34m\[m  
+[1;33m|[m * [33mb5f20d6[m Update HDFC session handling
+[1;33m|[m[1;33m/[m  
+*   [33m30cf5d7[m Merge pull request #26 from VishnuVahanDas/set-return-url-and-update-urls.py-for-hdfc
+[1;35m|[m[1;36m\[m  
+[1;35m|[m * [33ma71527f[m Log HDFC POST data in return view
+[1;35m|[m[1;35m/[m  
+*   [33mfdfadd8[m Merge pull request #25 from VishnuVahanDas/create-donation-redirect-and-status-templates
+[31m|[m[32m\[m  
+[31m|[m * [33maee417b[m Add payment result templates and update return view
+[31m|[m[31m/[m  
+*   [33m5f81e01[m Merge pull request #24 from VishnuVahanDas/add-donation-forms-to-templates
+[33m|[m[34m\[m  
+[33m|[m * [33m5c5592f[m Add reusable donation form and start payment wrapper
+[33m|[m[33m/[m  
+*   [33mcc5fcca[m Merge pull request #23 from VishnuVahanDas/add-category-field-to-order-model
+[35m|[m[36m\[m  
+[35m|[m * [33m10c32bd[m Add category field to orders
+[35m|[m[35m/[m  
+*   [33m3cfff2d[m Merge pull request #22 from VishnuVahanDas/remove-donation.views.pay-and-create-wrapper-view
+[1;31m|[m[1;32m\[m  
+[1;31m|[m * [33mf93a2d9[m refactor donation payment entry
+[1;31m|[m[1;31m/[m  
+*   [33m4fa088a[m Merge pull request #21 from VishnuVahanDas/remove-unused-hdfc-references
+[1;33m|[m[1;34m\[m  
+[1;33m|[m * [33m5a5c736[m refactor: drop legacy HDFC constants
+[1;33m|[m[1;33m/[m  
+[1;33m|[m * [33m81d3bb9[m[33m ([m[1;31morigin/codex/add-donation-templates-and-forms[m[33m)[m Add payment flow templates
+[1;33m|[m[1;33m/[m  
+*   [33m82b63a0[m Merge pull request #19 from VishnuVahanDas/add-payment-routes-to-urls.py
+[1;36m|[m[31m\[m  
+[1;36m|[m * [33m6aded46[m Add payment callback routes
+[1;36m|[m[1;36m/[m  
+* [33m4d7b914[m fixing urls
+* [33mb574193[m fixing urls
+*   [33m93d38bf[m Merge branch 'master' of https://github.com/VishnuVahanDas/iskcongkp
+[32m|[m[33m\[m  
+[32m|[m *   [33mce7a8b1[m Merge pull request #18 from VishnuVahanDas/add-callback-function-to-donation-views
+[32m|[m [34m|[m[35m\[m  
+[32m|[m [34m|[m * [33m071dcb2[m Revert pyc files
+[32m|[m [34m|[m[34m/[m  
+[32m|[m *   [33m83b5ae6[m Merge pull request #17 from VishnuVahanDas/create-donation-form-and-update-view
+[32m|[m [36m|[m[1;31m\[m  
+[32m|[m [36m|[m * [33m796994d[m Add donation payment form and view
+[32m|[m [36m|[m[36m/[m  
+* [36m/[m [33mc7d4e6d[m fixing hdfc keys
+[36m|[m[36m/[m  
+* [33m441a830[m adding hdfc api
+* [33m2dbd6de[m adding hdfc keys
+*   [33m7640341[m Merge pull request #16 from VishnuVahanDas/update-requirements.txt-with-dependencies
+[1;32m|[m[1;33m\[m  
+[1;32m|[m * [33m14ef642[m Revert bytecode file to previous state
+[1;32m|[m[1;32m/[m  
+*   [33meee0d62[m Merge pull request #15 from VishnuVahanDas/codex/add-csrf-trusted-origin-setting
+[1;34m|[m[1;35m\[m  
+[1;34m|[m * [33m99725a2[m Revert pycache changes
+[1;34m|[m[1;34m/[m  
+*   [33m8136c59[m Merge pull request #14 from VishnuVahanDas/codex/add-csrf-token-to-donation-forms
+[1;36m|[m[31m\[m  
+[1;36m|[m * [33m93eacbb[m Add CSRF tokens to all tula-daan forms
+[1;36m|[m[1;36m/[m  
+*   [33ma77fa12[m Merge pull request #13 from VishnuVahanDas/codex/add-csrf-token-to-donation-form
+[32m|[m[33m\[m  
+[32m|[m * [33ma529280[m Add CSRF token to Tula Daan donation form
+[32m|[m[32m/[m  
+*   [33m672aee3[m Merge pull request #12 from VishnuVahanDas/codex/add-auto-show-modal-script
+[34m|[m[35m\[m  
+[34m|[m * [33m3abc8a0[m Show news modal automatically
+[34m|[m[34m/[m  
+*   [33m39f0225[m Merge pull request #11 from VishnuVahanDas/codex/add-news-popup-modal-to-homepage
+[36m|[m[1;31m\[m  
+[36m|[m * [33mee2cf47[m Add news popup modal
+[36m|[m[36m/[m  
+*   [33m5c8a6ce[m Merge pull request #10 from VishnuVahanDas/codex/add-newspopup-model-and-admin-registration
+[1;32m|[m[1;33m\[m  
+[1;32m|[m * [33ma597d26[m Add NewsPopup model and admin registration
+[1;32m|[m[1;32m/[m  
+* [33m6e810f6[m adding features
+* [33mb645ac4[m social links fixing
+* [33ma889379[m fixing navbar
+* [33mff7449c[m fixing maintenance page
+*   [33mebf073c[m Merge pull request #9 from VishnuVahanDas/codex/create-maintenance-page-template-and-routing
+[1;34m|[m[1;35m\[m  
+[1;34m|[m * [33m411192f[m Add maintenance mode and page
+[1;34m|[m[1;34m/[m  
+* [33mbb894a0[m bug fixing
+* [33m1ae25f0[m bug fixing
+* [33mfec42bb[m bug fixing
+*   [33med8a9f2[m Merge pull request #8 from VishnuVahanDas/codex/standardize-path-to-siksha-or-shiksha
+[1;36m|[m[31m\[m  
+[1;36m|[m * [33m25dec3f[m fix: standardize shiksha path
+[1;36m|[m[1;36m/[m  
+*   [33m0f1b06b[m Merge pull request #7 from VishnuVahanDas/codex/add-custom-404-error-handler
+[32m|[m[33m\[m  
+[32m|[m * [33mf98c4aa[m Add custom 404 handler and tests
+* [33m|[m [33m4d901cb[m add
+[33m|[m[33m/[m  
+*   [33mcfaf7ed[m Merge pull request #6 from VishnuVahanDas/codex/rename-banner-and-top_header
+[34m|[m[35m\[m  
+[34m|[m * [33m7d04213[m Rename banner models and ensure newline
+* [35m|[m [33md138097[m Delete env directory
+* [35m|[m [33m1b20c36[m Delete .venv directory
+* [35m|[m   [33m351ab5f[m Merge pull request #5 from VishnuVahanDas/codex/generate-requirements.txt-and-installation-docs
+[36m|[m[1;31m\[m [35m\[m  
+[36m|[m * [35m|[m [33m9ec5460[m Add requirements.txt and update install instructions
+[36m|[m [35m|[m[35m/[m  
+* [35m|[m   [33m8f9b227[m Merge pull request #4 from VishnuVahanDas/codex/add-open-source-license-in-license
+[35m|[m[1;33m\[m [35m\[m  
+[35m|[m [1;33m|[m[35m/[m  
+[35m|[m[35m/[m[1;33m|[m   
+[35m|[m * [33mbbafd48[m Add MIT license
+[35m|[m[35m/[m  
+*   [33m4f10172[m Merge pull request #3 from VishnuVahanDas/codex/create-readme.md-for-setup-instructions
+[1;34m|[m[1;35m\[m  
+[1;34m|[m * [33m99358df[m Add project README with setup and usage instructions
+* [1;35m|[m   [33m3feb29c[m Merge pull request #2 from VishnuVahanDas/codex/move-secrets-to-environment-variables
+[1;36m|[m[31m\[m [1;35m\[m  
+[1;36m|[m * [1;35m\[m   [33m5eab8c8[m Merge branch 'master' into codex/move-secrets-to-environment-variables
+[1;36m|[m [32m|[m[1;36m\[m [1;35m\[m  
+[1;36m|[m [32m|[m[1;36m/[m [1;35m/[m  
+[1;36m|[m[1;36m/[m[32m|[m [1;35m|[m   
+* [32m|[m [1;35m|[m   [33m336ae5b[m Merge pull request #1 from VishnuVahanDas/codex/add-.gitignore-file-with-patterns
+[1;35m|[m[35m\[m [32m\[m [1;35m\[m  
+[1;35m|[m [35m|[m[1;35m_[m[32m|[m[1;35m/[m  
+[1;35m|[m[1;35m/[m[35m|[m [32m|[m   
+[1;35m|[m * [32m|[m [33m445c96c[m Add .gitignore for Python project
+[1;35m|[m[1;35m/[m [32m/[m  
+[1;35m|[m * [33mb43888e[m Load secrets from environment
+[1;35m|[m[1;35m/[m  
+* [33m3a40a97[m Initial commit

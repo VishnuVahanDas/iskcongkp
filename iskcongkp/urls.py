@@ -27,6 +27,7 @@ from .views import  contact_view, privacy_view , terms_view, maintenance_view, s
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("homepage.urls")),
+    path("payments/", include(("payments.urls", "payments"), namespace="payments")),
     path("donation/", include("donation.urls")),
     path("who-we-are/", include("who_we_are.urls")),
     path("services/", include("services.urls")),

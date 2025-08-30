@@ -16,6 +16,16 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+HDFC_ENV = os.getenv("HDFC_ENV", "uat")
+HDFC_BASE_URL = "https://smartgatewayuat.hdfcbank.com" if HDFC_ENV == "uat" else "https://smartgateway.hdfcbank.com"
+HDFC_SESSION_URL = f"{HDFC_BASE_URL}/v4/session"
+HDFC_ORDER_STATUS_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}"
+HDFC_REFUND_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}/refunds"
+
+HDFC_MERCHANT_ID = os.getenv("HDFC_MERCHANT_ID")
+HDFC_API_KEY = os.getenv("HDFC_API_KEY")
+HDFC_RETURN_URL= "https://iskcongorakhpur.com/payments/return"
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
@@ -27,10 +37,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = True
-ALLOWED_HOSTS = ["iskcongorakhpur.com"]
+DEBUG = True
+ALLOWED_HOSTS = ["iskcongorakhpur.com" , "localhost"]
 
-CSRF_TRUSTED_ORIGINS = ["https://iskcongorakhpur.com"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://iskcongorakhpur.com",
+    "http://localhost:8000",
+]
 
 # Application definition
 
@@ -41,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'payments',
     'donation',
     'homepage',
     'who_we_are',
