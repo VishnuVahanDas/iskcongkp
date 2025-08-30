@@ -1,331 +1,232 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HDFC SmartGateway | Test Console</title>
-    <style>
-        :root {
-            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
-        }
-
-        body {
-            margin: 24px;
-        }
-
-        .card {
-            max-width: 860px;
-            margin: 0 auto;
-            border: 1px solid #ddd;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 6px 24px rgba(0, 0, 0, .06);
-        }
-
-        h1 {
-            margin: 0 0 10px;
-            font-size: 22px;
-        }
-
-        p.help {
-            margin-top: 0;
-            color: #555;
-        }
-
-        .row {
-            display: grid;
-            grid-template-columns: 180px 1fr;
-            gap: 12px;
-            align-items: center;
-            margin: 10px 0;
-        }
-
-        input,
-        select {
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-            width: 100%;
-        }
-
-        .btns {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-        }
-
-        button {
-            padding: 10px 14px;
-            border: 0;
-            border-radius: 12px;
-            cursor: pointer;
-            background: #111827;
-            color: white;
-        }
-
-        button.secondary {
-            background: #4b5563;
-        }
-
-        button.warn {
-            background: #b91c1c;
-        }
-
-        .muted {
-            color: #6b7280;
-            font-size: 12px;
-            margin-top: 2px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-top: 18px;
-        }
-
-        .panel {
-            border: 1px dashed #ccc;
-            border-radius: 12px;
-            padding: 12px;
-            min-height: 120px;
-            background: #fafafa;
-        }
-
-        .panel h3 {
-            margin: 0 0 10px;
-            font-size: 14px;
-            color: #374151;
-        }
-
-        pre {
-            white-space: pre-wrap;
-            word-break: break-word;
-            margin: 0;
-            font-size: 13px;
-        }
-
-        .ok {
-            color: #065f46;
-        }
-
-        .err {
-            color: #991b1b;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HDFC SmartGateway | Test Console</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji"; }
+    body { margin: 24px; }
+    .card { max-width: 860px; margin: 0 auto; border: 1px solid #ddd; border-radius: 16px; padding: 20px; box-shadow: 0 6px 24px rgba(0,0,0,.06); }
+    h1 { margin: 0 0 10px; font-size: 22px; }
+    p.help { margin-top: 0; color: #555; }
+    .row { display: grid; grid-template-columns: 180px 1fr; gap: 12px; align-items: center; margin: 10px 0; }
+    input, select { padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc; width: 100%; }
+    .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    button { padding: 10px 14px; border: 0; border-radius: 12px; cursor: pointer; background: #111827; color: white; }
+    button.secondary { background: #4b5563; }
+    button.warn { background: #b91c1c; }
+    .muted { color: #6b7280; font-size: 12px; margin-top: 2px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+    .panel { border: 1px dashed #ccc; border-radius: 12px; padding: 12px; min-height: 120px; background: #fafafa; }
+    .panel h3 { margin: 0 0 10px; font-size: 14px; color: #374151; }
+    pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-size: 13px; }
+  </style>
 </head>
-
 <body>
-    <div class="card">
-        <h1>HDFC SmartGateway — Test Console</h1>
-        <p class="help">
-            Use this to create a Session (order), open the HDFC hosted page, receive a result via your webhook
-            (server→server),
-            then manually poll status and try a refund.
-        </p>
+  <div class="card">
+    <h1>HDFC SmartGateway — Test Console</h1>
+    <p class="help">
+      Create a Session, open HDFC hosted page, then poll status or issue a refund.
+    </p>
 
-        <div class="row">
-            <label>Environment</label>
-            <select id="env">
-                <option value="detect">Use server settings</option>
-                <option value="uat">Force UAT</option>
-                <option value="prod">Force PROD</option>
-            </select>
-        </div>
-
-        <div class="row">
-            <label>Order ID</label>
-            <input id="orderId" placeholder="leave blank to auto-generate" />
-        </div>
-
-        <div class="row">
-            <label>Amount (INR)</label>
-            <input id="amount" type="number" step="0.01" placeholder="199.00" value="199.00" />
-        </div>
-
-        <div class="row">
-            <label>Customer ID</label>
-            <input id="customerId" placeholder="guest123" value="guest123" />
-        </div>
-
-        <div class="row">
-            <label>Customer Email</label>
-            <input id="customerEmail" placeholder="test@example.com" value="test@example.com" />
-        </div>
-
-        <div class="row">
-            <label>Customer Mobile</label>
-            <input id="customerMobile" placeholder="9999999999" value="9999999999" />
-        </div>
-
-
-        <div class="row">
-            <label>Return URL (optional)</label>
-            <input id="returnUrl" placeholder="https://yourapp.com/after-payment" />
-        </div>
-
-        <div class="row">
-            <label>Webhook URL (optional)</label>
-            <input id="webhookUrl" placeholder="https://yourapp.com/payments/hdfc/webhook" />
-        </div>
-        <div class="muted">Ensure webhook endpoint is HTTPS and reachable from the bank.</div>
-
-        <div class="btns">
-            <button id="btnCreate">1) Create Session</button>
-            <button id="btnRedirect" class="secondary" disabled>2) Open Hosted Page</button>
-            <button id="btnStatus" class="secondary" disabled>3) Poll Status</button>
-            <button id="btnRefund" class="warn" disabled>4) Refund</button>
-        </div>
-
-        <div class="grid">
-            <div class="panel">
-                <h3>Session Response</h3>
-                <pre id="sessionOut">–</pre>
-            </div>
-            <div class="panel">
-                <h3>Status Response</h3>
-                <pre id="statusOut">–</pre>
-            </div>
-        </div>
-
-        <div class="panel" style="margin-top:16px;">
-            <h3>Logs</h3>
-            <pre id="logs"></pre>
-        </div>
+    <div class="row">
+      <label>Environment</label>
+      <select id="env">
+        <option value="detect">Use server settings</option>
+        <option value="uat">Force UAT</option>
+        <option value="prod">Force PROD</option>
+      </select>
     </div>
 
-    <script>
-        // ---- CSRF helper ----
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-        const csrftoken = getCookie('csrftoken');
+    <div class="row">
+      <label>Order ID</label>
+      <input id="orderId" placeholder="leave blank to auto-generate" />
+    </div>
 
-        const $ = (id) => document.getElementById(id);
-        const log = (msg, type = "info") => {
-            const ts = new Date().toLocaleTimeString();
-            const prefix = type === "error" ? "[ERR]" : "[OK ]";
-            $("logs").textContent = `${$("logs").textContent}${prefix} ${ts} — ${msg}\n`;
-        };
+    <div class="row">
+      <label>Amount (INR)</label>
+      <input id="amount" type="number" step="0.01" placeholder="199.00" value="199.00" />
+    </div>
 
-        async function fetchSmart(url, options) {
-            const res = await fetch(url, options);
-            const ct = (res.headers.get("content-type") || "").toLowerCase();
-            let data = null, text = null;
-            try {
-                if (ct.includes("application/json")) data = await res.json();
-                else text = await res.text();
-            } catch (e) {
-                text = `<< Failed to parse response >>\n${e?.message || e}`;
-            }
-            return { ok: res.ok, status: res.status, data, text };
-        }
+    <div class="row">
+      <label>Customer ID</label>
+      <input id="customerId" placeholder="guest123" value="guest123" />
+    </div>
 
-        function disableActions() {
-            $("btnRedirect").disabled = true;
-            $("btnStatus").disabled = true;
-            $("btnRefund").disabled = true;
-        }
-        function enableActions({ canRedirect, hasOrder }) {
-            $("btnRedirect").disabled = !canRedirect;
-            $("btnStatus").disabled = !hasOrder;
-            $("btnRefund").disabled = !hasOrder;
-        }
+    <div class="row">
+      <label>Customer Email</label>
+      <input id="customerEmail" placeholder="test@example.com" value="test@example.com" />
+    </div>
 
-        let lastOrderId = null;
-        let lastRedirectUrl = null;
+    <div class="row">
+      <label>Customer Mobile</label>
+      <input id="customerMobile" placeholder="9999999999" value="9999999999" />
+    </div>
 
-        // ---- Create Session ----
-        $("btnCreate").onclick = async () => {
-            disableActions();
+    <div class="row">
+      <label>Return URL (optional)</label>
+      <input id="returnUrl" placeholder="https://iskcongorakhpur.com/payments/return/" />
+    </div>
 
-            const payload = {
-                order_id: $("orderId").value || undefined,
-                amount: $("amount").value,
-                customer_id: $("customerId").value || "guest",
-                email: $("customerEmail").value || "",
-                mobile: $("customerMobile").value || ""
-            };
-            const returnUrl = $("returnUrl").value.trim();
-            const webhookUrl = $("webhookUrl").value.trim();
-            if (returnUrl) payload.return_url = returnUrl;
-            if (webhookUrl) payload.webhook_url = webhookUrl;
+    <div class="row">
+      <label>Webhook URL (optional)</label>
+      <input id="webhookUrl" placeholder="https://iskcongorakhpur.com/payments/hdfc/webhook/" />
+    </div>
+    <div class="muted">Ensure webhook endpoint is HTTPS and reachable from the bank.</div>
 
-            const env = $("env").value;
-            const headers = { "Content-Type": "application/json", "X-Requested-Env": env };
-            if (csrftoken) headers["X-CSRFToken"] = csrftoken;
+    <div class="btns">
+      <button id="btnCreate">1) Create Session</button>
+      <button id="btnRedirect" class="secondary" disabled>2) Open Hosted Page</button>
+      <button id="btnStatus" class="secondary" disabled>3) Poll Status</button>
+      <button id="btnRefund" class="warn" disabled>4) Refund</button>
+    </div>
 
-            const resp = await fetchSmart("{% url 'payments:hdfc_start' %}", {
-                method: "POST",
-                headers,
-                body: JSON.stringify(payload),
-            });
+    <div class="grid">
+      <div class="panel">
+        <h3>Session Response</h3>
+        <pre id="sessionOut">–</pre>
+      </div>
+      <div class="panel">
+        <h3>Status Response</h3>
+        <pre id="statusOut">–</pre>
+      </div>
+    </div>
 
-            if (resp.data) $("sessionOut").textContent = JSON.stringify(resp.data, null, 2);
-            else $("sessionOut").textContent = resp.text || "—";
+    <div class="panel" style="margin-top:16px;">
+      <h3>Logs</h3>
+      <pre id="logs"></pre>
+    </div>
+  </div>
 
-            if (!resp.ok) {
-                log(`Session API failed (HTTP ${resp.status}).`, "error");
-                return;
-            }
+  <script>
+    // CSRF helper
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    const csrftoken = getCookie('csrftoken');
 
-            const data = resp.data || {};
-            lastOrderId = data.order_id || $("orderId").value;
-            lastRedirectUrl = data.redirect_url || data.raw?.payment_link || data.raw?.redirect_url || data.raw?.url || null;
+    const $ = (id) => document.getElementById(id);
+    const log = (msg, type = "info") => {
+      const ts = new Date().toLocaleTimeString();
+      const prefix = type === "error" ? "[ERR]" : "[OK ]";
+      $("logs").textContent = `${$("logs").textContent}${prefix} ${ts} — ${msg}\n`;
+    };
 
-            if (lastOrderId) $("orderId").value = lastOrderId;
-            enableActions({ canRedirect: !!lastRedirectUrl, hasOrder: !!lastOrderId });
+    async function fetchSmart(url, options) {
+      const res = await fetch(url, options);
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      let data = null, text = null;
+      try {
+        if (ct.includes("application/json")) data = await res.json();
+        else text = await res.text();
+      } catch (e) {
+        text = `<< Failed to parse response >>\n${e?.message || e}`;
+      }
+      return { ok: res.ok, status: res.status, data, text };
+    }
 
-            if (lastRedirectUrl) log("Session created. Ready to open hosted page.", "ok");
-            else log("Session created but no redirect URL present.", "error");
-        };
+    function disableActions() {
+      $("btnRedirect").disabled = true;
+      $("btnStatus").disabled = true;
+      $("btnRefund").disabled = true;
+    }
+    function enableActions({ canRedirect, hasOrder }) {
+      $("btnRedirect").disabled = !canRedirect;
+      $("btnStatus").disabled = !hasOrder;
+      $("btnRefund").disabled = !hasOrder;
+    }
 
-        // ---- Open Hosted Page ----
-        $("btnRedirect").onclick = () => {
-            if (!lastRedirectUrl) return;
-            window.open(lastRedirectUrl, "_blank", "noopener");
-            log("Opened HDFC hosted page in a new tab.", "ok");
-        };
+    let lastOrderId = null;
+    let lastRedirectUrl = null;
 
-        // ---- Poll Status ----
-        $("btnStatus").onclick = async () => {
-            if (!lastOrderId) return;
-            const urlTpl = "{% url 'payments:hdfc_status' order_id='__OID__' %}";
-            const resp = await fetchSmart(urlTpl.replace("__OID__", lastOrderId), { method: "GET" });
+    // Create Session
+    $("btnCreate").onclick = async () => {
+      disableActions();
 
-            if (resp.data) $("statusOut").textContent = JSON.stringify(resp.data, null, 2);
-            else $("statusOut").textContent = resp.text || "—";
+      const payload = {
+        order_id: $("orderId").value || undefined,
+        amount: $("amount").value,
+        customer_id: $("customerId").value || "guest",
+        email: $("customerEmail").value || "",
+        mobile: $("customerMobile").value || "",
+      };
+      const returnUrl = $("returnUrl").value.trim();
+      const webhookUrl = $("webhookUrl").value.trim();
+      if (returnUrl) payload.return_url = returnUrl;
+      if (webhookUrl) payload.webhook_url = webhookUrl;
 
-            if (resp.ok) log("Status fetched.", "ok");
-            else log(`Status API failed (HTTP ${resp.status}).`, "error");
-        };
+      const headers = { "Content-Type": "application/json" };
+      if (csrftoken) headers["X-CSRFToken"] = csrftoken;
 
-        // ---- Refund ----
-        $("btnRefund").onclick = async () => {
-            if (!lastOrderId) return;
-            const amount = prompt("Refund amount (blank for full):", "");
-            const headers = { "Content-Type": "application/json" };
-            if (csrftoken) headers["X-CSRFToken"] = csrftoken;
+      const resp = await fetchSmart("{% url 'payments:hdfc_start' %}", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
 
-            const urlTpl = "{% url 'payments:hdfc_refund' order_id='__OID__' %}";
-            const resp = await fetchSmart(urlTpl.replace("__OID__", lastOrderId), {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ amount: amount || undefined }),
-            });
+      if (resp.data) $("sessionOut").textContent = JSON.stringify(resp.data, null, 2);
+      else $("sessionOut").textContent = resp.text || "—";
 
-            if (resp.data) $("statusOut").textContent = JSON.stringify(resp.data, null, 2);
-            else $("statusOut").textContent = resp.text || "—";
+      if (!resp.ok) {
+        log(`Session API failed (HTTP ${resp.status}).`, "error");
+        return;
+      }
 
-            if (resp.ok) log("Refund request sent.", "ok");
-            else log(`Refund API failed (HTTP ${resp.status}).`, "error");
-        };
-    </script>
+      const data = resp.data || {};
+      lastOrderId = data.order_id || $("orderId").value;
+      lastRedirectUrl = data.redirect_url || data.raw?.payment_link || data.raw?.redirect_url || data.raw?.url || null;
+
+      if (lastOrderId) $("orderId").value = lastOrderId;
+      enableActions({ canRedirect: !!lastRedirectUrl, hasOrder: !!lastOrderId });
+
+      if (lastRedirectUrl) log("Session created. Ready to open hosted page.", "ok");
+      else log("Session created but no redirect URL present.", "error");
+    };
+
+    // Open Hosted Page
+    $("btnRedirect").onclick = () => {
+      if (!lastRedirectUrl) return;
+      window.open(lastRedirectUrl, "_blank", "noopener");
+      log("Opened HDFC hosted page in a new tab.", "ok");
+    };
+
+    // Poll Status
+    $("btnStatus").onclick = async () => {
+      if (!lastOrderId) return;
+      const urlTpl = "{% url 'payments:hdfc_status' order_id='__OID__' %}";
+      const resp = await fetchSmart(urlTpl.replace("__OID__", lastOrderId), { method: "GET" });
+
+      if (resp.data) $("statusOut").textContent = JSON.stringify(resp.data, null, 2);
+      else $("statusOut").textContent = resp.text || "—";
+
+      if (resp.ok) log("Status fetched.", "ok");
+      else log(`Status API failed (HTTP ${resp.status}).`, "error");
+    };
+
+    // Refund
+    $("btnRefund").onclick = async () => {
+      if (!lastOrderId) return;
+      const amount = prompt("Refund amount (blank for full):", "");
+      const headers = { "Content-Type": "application/json" };
+      if (csrftoken) headers["X-CSRFToken"] = csrftoken;
+
+      const urlTpl = "{% url 'payments:hdfc_refund' order_id='__OID__' %}";
+      const resp = await fetchSmart(urlTpl.replace("__OID__", lastOrderId), {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ amount: amount || undefined }),
+      });
+
+      if (resp.data) $("statusOut").textContent = JSON.stringify(resp.data, null, 2);
+      else $("statusOut").textContent = resp.text || "—";
+
+      if (resp.ok) log("Refund request sent.", "ok");
+      else log(`Refund API failed (HTTP ${resp.status}).`, "error");
+    };
+  </script>
 </body>
-
 </html>

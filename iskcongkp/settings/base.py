@@ -9,52 +9,59 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+
 import os
-import os.path
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
-# Load environment variables
 load_dotenv()
 
-HDFC_ENV = os.getenv("HDFC_ENV", "uat")
+# Environment / Base URLs
+HDFC_ENV = os.getenv("HDFC_ENV", "uat").lower()
 HDFC_BASE_URL = "https://smartgatewayuat.hdfcbank.com" if HDFC_ENV == "uat" else "https://smartgateway.hdfcbank.com"
 HDFC_SESSION_URL = f"{HDFC_BASE_URL}/v4/session"
 HDFC_ORDER_STATUS_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}"
 HDFC_REFUND_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}/refunds"
-HDFC_JWT_KID = os.getenv("HDFC_KEY_UUID")
 
-# Load and validate merchant private key
+# KID (key ID) for the merchant key you registered in the portal
+HDFC_KEY_UUID = os.getenv("HDFC_KEY_UUID")
+if not HDFC_KEY_UUID:
+    raise ImproperlyConfigured("HDFC_KEY_UUID (kid) environment variable is required")
+
+# Merchant private key (PEM)
 HDFC_PRIVATE_KEY_PATH = os.getenv("HDFC_PRIVATE_KEY_PATH")
 if not HDFC_PRIVATE_KEY_PATH:
     raise ImproperlyConfigured("HDFC_PRIVATE_KEY_PATH environment variable is required")
 try:
-    with open(HDFC_PRIVATE_KEY_PATH, "r") as pk_file:
-        HDFC_MERCHANT_PRIVATE_KEY_PEM = pk_file.read()
+    with open(HDFC_PRIVATE_KEY_PATH, "rb") as pk_file:
+        HDFC_MERCHANT_PRIVATE_KEY_PEM = pk_file.read().replace(b"\r\n", b"\n")
 except OSError as exc:
-    raise ImproperlyConfigured(
-        f"Failed to read HDFC private key from {HDFC_PRIVATE_KEY_PATH}: {exc}"
-    )
+    raise ImproperlyConfigured(f"Failed to read HDFC private key from {HDFC_PRIVATE_KEY_PATH}: {exc}")
 
-# Load and validate bank public key
+# Bank public key (PEM) – UAT vs PROD matters!
 HDFC_PUBLIC_KEY_PATH = os.getenv("HDFC_PUBLIC_KEY_PATH")
 if not HDFC_PUBLIC_KEY_PATH:
     raise ImproperlyConfigured("HDFC_PUBLIC_KEY_PATH environment variable is required")
 try:
-    with open(HDFC_PUBLIC_KEY_PATH, "r") as pub_file:
-        HDFC_BANK_PUBLIC_KEY_PEM = pub_file.read()
+    with open(HDFC_PUBLIC_KEY_PATH, "rb") as pub_file:
+        HDFC_BANK_PUBLIC_KEY_PEM = pub_file.read().replace(b"\r\n", b"\n")
 except OSError as exc:
-    raise ImproperlyConfigured(
-        f"Failed to read HDFC public key from {HDFC_PUBLIC_KEY_PATH}: {exc}"
-    )
+    raise ImproperlyConfigured(f"Failed to read HDFC public key from {HDFC_PUBLIC_KEY_PATH}: {exc}")
 
+# Credentials
 HDFC_MERCHANT_ID = os.getenv("HDFC_MERCHANT_ID")
-HDFC_API_KEY = os.getenv("HDFC_API_KEY")
+HDFC_API_KEY = os.getenv("HDFC_API_KEY")  # still used for some endpoints (status/refund)
 if not HDFC_MERCHANT_ID:
     raise ImproperlyConfigured("HDFC_MERCHANT_ID environment variable is required")
 if not HDFC_API_KEY:
     raise ImproperlyConfigured("HDFC_API_KEY environment variable is required")
-HDFC_RETURN_URL= "https://iskcongorakhpur.com/payments/return"
+
+# URLs used in payloads (keep trailing slashes)
+HDFC_RETURN_URL  = os.getenv("HDFC_RETURN_URL",  "https://iskcongorakhpur.com/payments/return/")
+HDFC_WEBHOOK_URL = os.getenv("HDFC_WEBHOOK_URL", "https://iskcongorakhpur.com/payments/hdfc/webhook/")
+
+# Optional: if your private key is encrypted
+HDFC_MERCHANT_PRIVATE_KEY_PASSPHRASE = os.getenv("HDFC_PRIVATE_KEY_PASSPHRASE")  # or leave unset
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(
