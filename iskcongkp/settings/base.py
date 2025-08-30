@@ -22,7 +22,9 @@ HDFC_BASE_URL = "https://smartgatewayuat.hdfcbank.com" if HDFC_ENV == "uat" else
 HDFC_SESSION_URL = f"{HDFC_BASE_URL}/v4/session"
 HDFC_ORDER_STATUS_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}"
 HDFC_REFUND_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}/refunds"
-
+HDFC_JWT_KID = os.getenv("HDFC_KEY_UUID")
+HDFC_MERCHANT_PRIVATE_KEY_PEM = os.getenv("HDFC_PRIVATE_KEY_PATH")
+HDFC_BANK_PUBLIC_KEY_PEM = os.getenv("HDFC_PUBLIC_KEY_PATH")
 HDFC_MERCHANT_ID = os.getenv("HDFC_MERCHANT_ID")
 HDFC_API_KEY = os.getenv("HDFC_API_KEY")
 if not HDFC_MERCHANT_ID:
@@ -30,7 +32,6 @@ if not HDFC_MERCHANT_ID:
 if not HDFC_API_KEY:
     raise ImproperlyConfigured("HDFC_API_KEY environment variable is required")
 HDFC_RETURN_URL= "https://iskcongorakhpur.com/payments/return"
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(
