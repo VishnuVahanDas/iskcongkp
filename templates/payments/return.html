@@ -15,66 +15,51 @@
 <body>
   <div class="card">
     <h2>Thank you. Verifying your payment…</h2>
-
     <div id="auto-note" class="row">If we can find your last order from cookies, we’ll check it automatically.</div>
 
-    <div class="row">
-      <label>Order ID: <input id="orderId" placeholder="e.g. ProdSmoke08301145" /></label>
-    </div>
-    <div class="row">
-      <label>Customer ID: <input id="customerId" placeholder="e.g. cust-prod-0001" /></label>
-    </div>
-    <div class="row">
-      <button id="checkBtn">Check Status</button>
-    </div>
+    <div class="row"><label>Order ID: <input id="orderId" /></label></div>
+    <div class="row"><label>Customer ID: <input id="customerId" /></label></div>
+    <div class="row"><button id="checkBtn">Check Status</button></div>
 
     <div class="row" id="result"></div>
     <pre id="raw" hidden></pre>
   </div>
 
   <script>
+    const ctxOrder = "{{ order_id|default_if_none:'' }}";
+    const ctxCustomer = "{{ customer_id|default_if_none:'' }}";
     function readCookie(name) {
       const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
       return m ? decodeURIComponent(m[2]) : '';
     }
+    const cid = ctxCustomer || readCookie('hdfc_customer_id');
+    const oid = ctxOrder || readCookie('hdfc_last_order_id');
+    if (cid) document.getElementById('customerId').value = cid;
+    if (oid) document.getElementById('orderId').value = oid;
 
     async function check(orderId, customerId) {
       const resEl = document.getElementById('result');
       const rawEl = document.getElementById('raw');
-      resEl.textContent = 'Checking…';
-      rawEl.hidden = true;
-
+      resEl.textContent = 'Checking…'; rawEl.hidden = true;
       try {
         const resp = await fetch(`/payments/status/${encodeURIComponent(orderId)}?customer_id=${encodeURIComponent(customerId)}`);
         const data = await resp.json();
         if (data.ok) {
-          const paid = data.is_paid ? '✅ CHARGED (PAID)' : `❓ ${data.data?.status || 'UNKNOWN'}`;
-          resEl.textContent = `Order ${orderId}: ${paid}`;
-          rawEl.textContent = JSON.stringify(data, null, 2);
-          rawEl.hidden = false;
+          const paid = String(data.data?.status || '').toUpperCase() === 'CHARGED';
+          resEl.textContent = `Order ${orderId}: ${paid ? '✅ CHARGED (PAID)' : '❓ ' + (data.data?.status || 'UNKNOWN')}`;
+          rawEl.textContent = JSON.stringify(data, null, 2); rawEl.hidden = false;
         } else {
           resEl.textContent = 'Error: ' + (data.error || 'Unknown');
         }
-      } catch (e) {
-        resEl.textContent = 'Network error: ' + e.message;
-      }
+      } catch (e) { resEl.textContent = 'Network error: ' + e.message; }
     }
-
-    // Try to auto-fill from cookies (set by your app when creating session)
-    const cid = readCookie('hdfc_customer_id');
-    const oid = readCookie('hdfc_last_order_id');
-    if (cid && oid) {
-      document.getElementById('orderId').value = oid;
-      document.getElementById('customerId').value = cid;
-      check(oid, cid);
-    }
-
     document.getElementById('checkBtn').addEventListener('click', () => {
       const orderId = document.getElementById('orderId').value.trim();
       const customerId = document.getElementById('customerId').value.trim();
       if (!orderId || !customerId) { alert('Enter Order ID and Customer ID'); return; }
       check(orderId, customerId);
     });
+    if (cid && oid) check(oid, cid);
   </script>
 </body>
 </html>
