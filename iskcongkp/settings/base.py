@@ -23,8 +23,31 @@ HDFC_SESSION_URL = f"{HDFC_BASE_URL}/v4/session"
 HDFC_ORDER_STATUS_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}"
 HDFC_REFUND_URL = f"{HDFC_BASE_URL}/v4/orders/{{order_id}}/refunds"
 HDFC_JWT_KID = os.getenv("HDFC_KEY_UUID")
-HDFC_MERCHANT_PRIVATE_KEY_PEM = os.getenv("HDFC_PRIVATE_KEY_PATH")
-HDFC_BANK_PUBLIC_KEY_PEM = os.getenv("HDFC_PUBLIC_KEY_PATH")
+
+# Load and validate merchant private key
+HDFC_PRIVATE_KEY_PATH = os.getenv("HDFC_PRIVATE_KEY_PATH")
+if not HDFC_PRIVATE_KEY_PATH:
+    raise ImproperlyConfigured("HDFC_PRIVATE_KEY_PATH environment variable is required")
+try:
+    with open(HDFC_PRIVATE_KEY_PATH, "r") as pk_file:
+        HDFC_MERCHANT_PRIVATE_KEY_PEM = pk_file.read()
+except OSError as exc:
+    raise ImproperlyConfigured(
+        f"Failed to read HDFC private key from {HDFC_PRIVATE_KEY_PATH}: {exc}"
+    )
+
+# Load and validate bank public key
+HDFC_PUBLIC_KEY_PATH = os.getenv("HDFC_PUBLIC_KEY_PATH")
+if not HDFC_PUBLIC_KEY_PATH:
+    raise ImproperlyConfigured("HDFC_PUBLIC_KEY_PATH environment variable is required")
+try:
+    with open(HDFC_PUBLIC_KEY_PATH, "r") as pub_file:
+        HDFC_BANK_PUBLIC_KEY_PEM = pub_file.read()
+except OSError as exc:
+    raise ImproperlyConfigured(
+        f"Failed to read HDFC public key from {HDFC_PUBLIC_KEY_PATH}: {exc}"
+    )
+
 HDFC_MERCHANT_ID = os.getenv("HDFC_MERCHANT_ID")
 HDFC_API_KEY = os.getenv("HDFC_API_KEY")
 if not HDFC_MERCHANT_ID:
