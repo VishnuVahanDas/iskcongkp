@@ -1,13 +1,16 @@
 from django.shortcuts import render
 
 # Create your views here.
-import uuid, hmac, hashlib, json
+import uuid, hmac, hashlib, json, logging
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 
+import requests
 from .hdfc_client import create_session, order_status, refund_order
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 def start_checkout(request):
@@ -42,7 +45,28 @@ def start_checkout(request):
 
     try:
         sg_resp = create_session(sg_payload)
+    except requests.exceptions.HTTPError as e:
+        try:
+            err_body = e.response.json()
+        except ValueError:
+            err_body = e.response.text
+        logger.error(
+            "create_session HTTPError: status=%s headers=%s payload=%s response=%s",
+            getattr(e.response, "status_code", None),
+            getattr(e.response, "headers", {}),
+            sg_payload,
+            err_body,
+        )
+        return JsonResponse(
+            {
+                "error": "Failed to create session",
+                "details": str(e),
+                "response": err_body,
+            },
+            status=500,
+        )
     except Exception as e:
+        logger.exception("Failed to create session")
         return JsonResponse({"error": "Failed to create session", "details": str(e)}, status=500)
 
     redirect_url = sg_resp.get("payment_link") or sg_resp.get("redirect_url") or sg_resp.get("url")
