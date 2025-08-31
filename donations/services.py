@@ -36,7 +36,7 @@ def get_or_create_donor(name: str, email: str | None, phone: str | None, pan: st
             donor.phone_e164 = phone_e164; changed = True
         if not donor.pan and pan_norm:
             donor.pan = pan_norm; changed = True
-        if name and (not donor.name or len(name) < len(name)):
+        if name and (not donor.name or len(donor.name) < len(name)):
             donor.name = name; changed = True
         if addr:
             for f,v in addr.items():
