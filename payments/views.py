@@ -146,6 +146,18 @@ def hdfc_order_status_view(request, order_id: str):
     if not customer_id:
         return HttpResponseBadRequest("customer_id is required")
 
+    def _extract_status(data: dict) -> str:
+        # Normalize status from various possible keys/locations
+        if not isinstance(data, dict):
+            return ""
+        s = (data.get("status") or
+             (data.get("order") or {}).get("status") or
+             (data.get("payment") or {}).get("status") or
+             (data.get("transaction") or {}).get("status") or
+             (data.get("result") or {}).get("status") or
+             "")
+        return str(s).upper()
+
     try:
         result = get_order_status(oid, customer_id)
         data = result["data"]
@@ -184,7 +196,9 @@ def hdfc_order_status_view(request, order_id: str):
             order.metadata = meta
             order.save()
 
-        paid = str(data.get("status", "")).upper() == "CHARGED"
+        norm_status = _extract_status(data)
+        success_statuses = {"CHARGED", "SUCCESS", "SUCCESSFUL", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
+        paid = norm_status in success_statuses
         result["is_paid"] = paid
 
         # Send confirmation emails once per paid order using a row-level lock to avoid duplicates
@@ -211,6 +225,41 @@ def hdfc_order_status_view(request, order_id: str):
                 # Never break the status API due to email logic
                 pass
 
+        # Reconcile Donations app if webhook missed: mark SUCCESS and send receipt/magic link
+        try:
+            if paid:
+                from donations.models import Donation
+                donation = (
+                    Donation.objects.filter(txn_id=oid).first() or
+                    Donation.objects.filter(order_id=data.get("id") or "").first() or
+                    Donation.objects.filter(txn_id=data.get("txn_id") or "").first()
+                )
+                if donation and donation.status != "SUCCESS":
+                    from donations.services import mark_paid_and_receipt, issue_magic_link
+                    from django.urls import reverse
+                    from donations.emails import send_receipt_email
+
+                    mode = data.get("payment_method") or data.get("payment_method_type") or ""
+                    mark_paid_and_receipt(donation, mode, data)
+                    # send receipt + magic link once
+                    try:
+                        mlt = issue_magic_link(donation.donor)
+                        link = request.build_absolute_uri(
+                            reverse("donations:magic_claim", kwargs={"token": mlt.token})
+                        )
+                        send_receipt_email(donation, magic_link_url=link)
+                        meta = donation.gateway_meta or {}
+                        meta["receipt_email_sent"] = True
+                        meta["reconciled_via"] = "payments_status_api"
+                        donation.gateway_meta = meta
+                        donation.save(update_fields=["gateway_meta"])
+                    except Exception:
+                        # Mark that we attempted; avoid crashing status API
+                        pass
+        except Exception:
+            # Never break status API due to cross-app reconciliation
+            pass
+
         return JsonResponse(result, status=200, safe=False)
 
     except HdfcError as e:
@@ -220,7 +269,92 @@ def hdfc_order_status_view(request, order_id: str):
 def hdfc_return_view(request):
     order_id = request.POST.get("order_id") or request.GET.get("order_id") or ""
     customer_id = request.POST.get("customer_id") or request.GET.get("customer_id") or ""
-    ctx = {"order_id": order_id, "customer_id": customer_id}
+
+    # Default context
+    ctx = {"order_id": order_id, "customer_id": customer_id, "server_checked": False, "is_paid": False, "status": ""}
+    
+    # If customer_id missing, try to fetch from our DB by order_id
+    if order_id and not customer_id:
+        try:
+            o = Order.objects.filter(order_id=_sanitize_order_id(order_id)).first()
+            if o and o.customer_id:
+                customer_id = o.customer_id
+                ctx["customer_id"] = customer_id
+        except Exception:
+            pass
+        
+    # Server-side reconciliation for reliability (single source of truth)
+    if order_id and customer_id:
+        try:
+            result = get_order_status(_sanitize_order_id(order_id), customer_id)
+            data = result.get("data") or {}
+
+            # Normalize success state
+            def _extract_status(d: dict) -> str:
+                s = (
+                    (d or {}).get("status")
+                    or (d or {}).get("order", {}).get("status")
+                    or (d or {}).get("payment", {}).get("status")
+                    or (d or {}).get("transaction", {}).get("status")
+                    or (d or {}).get("result", {}).get("status")
+                    or ""
+                )
+                return str(s).upper()
+
+            norm_status = _extract_status(data)
+            success_statuses = {"CHARGED", "SUCCESS", "SUCCESSFUL", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
+            paid = norm_status in success_statuses
+            ctx.update({"server_checked": True, "is_paid": paid, "status": norm_status})
+
+            # Persist to payments.Order table
+            try:
+                order = Order.objects.get(order_id=_sanitize_order_id(order_id))
+                order.status = str(data.get("status", order.status or ""))
+                order.bank_order_id = data.get("id", order.bank_order_id or "")
+                order.txn_id = data.get("txn_id", order.txn_id or "")
+                order.payment_method_type = data.get("payment_method_type", order.payment_method_type or "")
+                order.payment_method = data.get("payment_method", order.payment_method or "")
+                order.auth_type = data.get("auth_type", order.auth_type or "")
+                order.last_status_payload = data
+                order.save()
+            except Exception:
+                pass
+
+            # Reconcile Donations app if paid
+            if paid:
+                try:
+                    from donations.models import Donation
+                    from donations.services import mark_paid_and_receipt, issue_magic_link
+                    from donations.emails import send_receipt_email
+                    from django.urls import reverse
+
+                    donation = (
+                        Donation.objects.filter(txn_id=order_id).first() or
+                        Donation.objects.filter(order_id=data.get("id") or "").first() or
+                        Donation.objects.filter(txn_id=data.get("txn_id") or "").first()
+                    )
+                    if donation and donation.status != "SUCCESS":
+                        mode = data.get("payment_method") or data.get("payment_method_type") or ""
+                        mark_paid_and_receipt(donation, mode, data)
+                        meta = donation.gateway_meta or {}
+                        if not bool(meta.get("receipt_email_sent")):
+                            try:
+                                mlt = issue_magic_link(donation.donor)
+                                link = request.build_absolute_uri(
+                                    reverse("donations:magic_claim", kwargs={"token": mlt.token})
+                                )
+                                send_receipt_email(donation, magic_link_url=link)
+                                meta["receipt_email_sent"] = True
+                                donation.gateway_meta = meta
+                                donation.save(update_fields=["gateway_meta"])
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+        except HdfcError:
+            # Ignore on page render; client can still try manual check
+            pass
+
     resp = render(request, "payments/return.html", ctx)
     if order_id:
         resp.set_cookie("hdfc_last_order_id", order_id, max_age=1800, secure=True, samesite="Lax")

@@ -16,6 +16,19 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+HDFC_BASE_URL    = os.getenv("HDFC_BASE_URL", "https://smartgateway.hdfcbank.com")
+HDFC_API_KEY     = os.getenv("HDFC_API_KEY", "")
+HDFC_MERCHANT_ID = os.getenv("HDFC_MERCHANT_ID", "")
+HDFC_RESELLER_ID = os.getenv("HDFC_RESELLER_ID", "hdfc_reseller")
+HDFC_RETURN_URL  = os.getenv("HDFC_RETURN_URL", "")
+HDFC_APPEND_COLON = os.getenv("HDFC_APPEND_COLON", "false").lower() in ("1", "true", "yes")
+# UAT override: set HDFC_CLIENT_ID=hdfcmaster in .env; PROD: omit -> defaults to MID
+HDFC_CLIENT_ID   = os.getenv("HDFC_CLIENT_ID", HDFC_MERCHANT_ID)
+# Webhook auth you configure in SmartGateway Dashboard
+HDFC_WEBHOOK_BASIC_USER = os.getenv("WEBHOOK_BASIC_USER")     # Dashboard > Webhooks (if you set Basic Auth)
+HDFC_WEBHOOK_BASIC_PASS = os.getenv("HDFC_WEBHOOK_BASIC_PASS") # often empty is allowed, but supported here
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
@@ -49,7 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'payments',
-    'donation',
+    'donations',
     'homepage',
     'who_we_are',
     'festivals',
@@ -173,6 +186,7 @@ EMAIL_USE_TLS = os.getenv("SMTP_USE_TLS", "false").lower() == "true"  # true if 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 EMAIL_FAIL_SILENTLY = os.getenv("EMAIL_FAIL_SILENTLY", "true").lower() == "true"
+DONATIONS_FROM_EMAIL = DEFAULT_FROM_EMAIL
 
 # Payments notifications (dev/defaults)
 PAYMENTS_ADMIN_EMAILS = os.getenv("PAYMENTS_ADMIN_EMAILS", "vipul57612@gmail.com")

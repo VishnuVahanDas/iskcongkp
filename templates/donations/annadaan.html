@@ -258,8 +258,7 @@
                                                             </div>
                                                             <div class="col-xs-12 col-sm-12 col-md-12">
                                                                 <p><a class="btn btn-primary btn-sm active"
-                                                                        href="https://pages.razorpay.com/iskcongorakhpur"
-                                                                        target="_blank">CLICK HERE TO DONATE</a></p>
+                                                                        href="{% url 'donations:donate_form' %}?purpose=Annadana%20Seva">CLICK HERE TO DONATE</a></p>
                                                                 <p>International Society for Krishna Consciousness
                                                                     <br />ISKCON Gorakhpur <br />Account name:
                                                                     ISKCON <br />Account number: 50100662519656
@@ -308,20 +307,14 @@
     <script>
       (function(){
         const PURPOSE_PREFIX = 'Annadana Seva';
-        function _genOrderId(prefix, uid){
-          try{ const p=String(prefix||'DN').replace(/[^A-Za-z0-9]/g,'').toUpperCase(); const u=String(uid||'GUEST').replace(/[^A-Za-z0-9]/g,'').toUpperCase(); const t=Date.now().toString(36).toUpperCase(); const r=Math.random().toString(36).slice(2,6).toUpperCase(); const raw=p+u.slice(-6)+t+r; return raw.replace(/[^A-Za-z0-9]/g,'').slice(0,20);}catch(e){return 'DN'+Math.random().toString(36).slice(2,10).toUpperCase();}
-        }
-        async function _createSession(payload){ const res=await fetch('/payments/create-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const ct=res.headers.get('content-type')||''; const isJson=ct.includes('application/json'); const data=isJson?await res.json():await res.text(); if(!res.ok){const msg=(isJson&&(data.error||data.message))||(''+data)||'Request failed'; throw new Error(msg);} return data; }
-        async function startDonation(amount,label){
-          const isAuth={{ user.is_authenticated|yesno:'true,false' }}; if(!isAuth){ window.location.href='/login/?next='+encodeURIComponent(window.location.pathname); return false; }
-          const customer_id='{{ user.username|escapejs }}'; const email='{{ user.email|escapejs }}'; const phone='{{ user.customer.phone|default:""|escapejs }}'; const first_name='{{ user.first_name|escapejs }}'; const last_name='{{ user.last_name|escapejs }}';
-          if(!email||!phone){ alert('Your profile is missing email or mobile. Please update your account.'); return false; }
-          const order_id=_genOrderId('AN', customer_id); const payload={ order_id, amount:Number(amount).toFixed(2), customer_id, customer_email:email, customer_phone:phone, first_name, last_name, description: PURPOSE_PREFIX + ' - ' + (label||'Donation'), currency:'INR' };
-          try{ const resp=await _createSession(payload); const links=(resp&&resp.data&&resp.data.payment_links)||{}; const url=links.web||links.mobile||''; if(url){ window.location.href=url; } else { alert('No payment link returned.'); } }catch(e){ alert('Failed to create session: '+e.message); }
-          return false;
+        function go(amount, label){
+          const amt = Math.max(1, Math.round(Number(amount)||0));
+          const purpose = PURPOSE_PREFIX + (label ? (' - ' + label) : '');
+          const url = `{% url 'donations:donate_form' %}?purpose=${encodeURIComponent(purpose)}&amount=${encodeURIComponent(amt)}`;
+          window.location.href = url;
         }
         document.addEventListener('DOMContentLoaded', function(){
-          document.querySelectorAll('a[href*="seva_amount="]').forEach(function(a){ a.addEventListener('click', function(ev){ try{ const u=new URL(a.href, window.location.origin); const amount=u.searchParams.get('seva_amount')||''; const label=decodeURIComponent(u.searchParams.get('seva_name')||''); if(amount){ ev.preventDefault(); startDonation(amount,label); } }catch(e){} }); });
+          document.querySelectorAll('a[href*="seva_amount="]').forEach(function(a){ a.addEventListener('click', function(ev){ try{ const u=new URL(a.href, window.location.origin); const amount=u.searchParams.get('seva_amount')||''; const label=decodeURIComponent(u.searchParams.get('seva_name')||''); if(amount){ ev.preventDefault(); go(amount,label); } }catch(e){} }); });
         });
       })();
     </script>

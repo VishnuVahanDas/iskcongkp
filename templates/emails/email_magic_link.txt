@@ -1,0 +1,6 @@
+Hare Krishna {{ donor.name|default:"Devotee" }},
+
+Click to sign in securely (valid for 30 minutes):
+{{ magic_link_url }}
+
+If you didn't request this, please ignore.

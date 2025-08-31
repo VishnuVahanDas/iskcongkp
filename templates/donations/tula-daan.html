@@ -72,13 +72,17 @@
 
 
                               function SetData(selbox, item) {
-                                var select = document.getElementById(selbox);
-                                var selected_text = select.options[select.selectedIndex].text;
-                                var seva_amount = select.options[select.selectedIndex].value;
-                                var url = new URL("https://iskcondonate.com/form.php");
-                                url.searchParams.append('seva_name', "Tula Daan for " + selected_text + " " + item);
-                                url.searchParams.append('seva_amount', seva_amount);
-                                window.location = url;
+                                try {
+                                  var select = document.getElementById(selbox);
+                                  var selected_text = select.options[select.selectedIndex].text;
+                                  var seva_amount = select.options[select.selectedIndex].value;
+                                  var purpose = 'Tula Daan Utsav' + (selected_text ? (' - ' + item + ' ' + selected_text) : '');
+                                  var base = "{% url 'donations:donate_form' %}";
+                                  var url = base + '?purpose=' + encodeURIComponent(purpose) + '&amount=' + encodeURIComponent(seva_amount);
+                                  window.location = url;
+                                } catch (e) {
+                                  window.location = "{% url 'donations:donate_form' %}?purpose=Tula%20Daan%20Utsav";
+                                }
                               }
 
 

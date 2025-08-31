@@ -1,0 +1,10 @@
+Hare Krishna {{ donor.name|default:"Devotee" }},
+
+Thank you for your donation of ₹{{ donation.amount }} towards "{{ donation.purpose }}".
+Receipt No: {{ donation.issued_receipt_no }}
+
+If you'd like to view your donation history online, click:
+{{ magic_link_url }}
+
+
+ISKCON Gorakhpur

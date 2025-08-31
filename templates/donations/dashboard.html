@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Donations</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    .card { max-width: 960px; margin: auto; padding: 1.25rem; border: 1px solid #ddd; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #eee; }
+    .muted { color: #6b7280; }
+  </style>
+  </head>
+<body>
+  <div class="card">
+    <h2>My Donations</h2>
+    {% if not donor %}
+      <p class="muted">No donor profile linked to this login yet.</p>
+    {% elif donations %}
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Purpose</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in donations %}
+          <tr>
+            <td>{{ d.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ d.purpose }}</td>
+            <td>₹{{ d.amount }}</td>
+            <td>{{ d.status }}</td>
+            <td>
+              {% if d.receipt %}
+                {{ d.receipt.number }}
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No donations yet.</p>
+    {% endif %}
+  </div>
+</body>
+</html>
+

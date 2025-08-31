@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Choose Cause & Amount</title>
+  <style>
+    :root { --border:#e5e7eb; --muted:#6b7280; --fg:#111; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 2rem; color: var(--fg); }
+    .card { max-width: 960px; margin: auto; padding: 1.25rem; border: 1px solid var(--border); border-radius: 12px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .row { margin: .5rem 0; }
+    select, input[type="number"], input[type="text"] { width: 100%; padding: .6rem .7rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; }
+    .muted { color: var(--muted); font-size: .95rem; }
+    .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem 1rem; border-radius: 8px; border: 1px solid #111; background: #111; color: #fff; cursor: pointer; }
+    .chips { display:flex; gap:.5rem; flex-wrap:wrap; }
+    .chip { padding: .45rem .7rem; border: 1px solid var(--border); border-radius: 999px; cursor:pointer; }
+    .chip.active { border-color:#111; background:#111; color:#fff; }
+    @media (max-width: 720px){ .grid { grid-template-columns: 1fr; } }
+  </style>
+  <script>
+    function onReady(){
+      const amt = document.getElementById('amount');
+      document.querySelectorAll('[data-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = btn.getAttribute('data-preset');
+          amt.value = v;
+          document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    }
+    document.addEventListener('DOMContentLoaded', onReady);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <h2>Choose cause & amount</h2>
+    <p class="muted">You can adjust the amount on the next step as well.</p>
+    <form method="get" action="{% url 'donations:donate_form' %}">
+      <div class="grid">
+        <div>
+          <div class="row"><label class="muted">Cause</label>
+            <select name="purpose">
+              {% for value,label in causes %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div>
+          <div class="row"><label class="muted">Amount (₹)</label>
+            <div class="chips" style="margin-bottom:.5rem;">
+              {% for p in presets %}
+                <span class="chip" data-preset="{{ p }}">₹{{ p }}</span>
+              {% endfor %}
+            </div>
+            <input id="amount" name="amount" type="number" min="1" step="1" placeholder="Custom amount" />
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:1rem;">
+        <button class="btn" type="submit">Continue</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
+

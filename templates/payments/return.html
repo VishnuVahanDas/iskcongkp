@@ -14,7 +14,10 @@
 </head>
 <body>
   <div class="card">
-    <h2>Thank you. Verifying your payment…</h2>
+    <div class="row" style="display:flex; justify-content: space-between; align-items:center; gap:.5rem;">
+      <h2 style="margin:0;">Thank you. Verifying your payment…</h2>
+      <a href="{% url 'homepage:homepage' %}" style="text-decoration:none; padding:.5rem .75rem; border:1px solid #222; border-radius:8px; color:#fff; background:#222;">Go to Homepage</a>
+    </div>
     <div id="auto-note" class="row">If we can find your last order from cookies, we’ll check it automatically.</div>
 
     <div class="row"><label>Order ID: <input id="orderId" /></label></div>
@@ -23,6 +26,16 @@
 
     <div class="row" id="result"></div>
     <pre id="raw" hidden></pre>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <h3>Get your donor account</h3>
+    <p class="muted">We’ll email you a magic link to access your donation history later. Optional, passwordless.</p>
+    <form method="post" action="{% url 'donations:magic_request' %}">
+      {% csrf_token %}
+      <div class="row"><label>Email</label><input name="email" id="claimEmail" type="email" placeholder="you@example.com" required></div>
+      <div class="row"><label></label><button class="btn" type="submit">Send magic link</button></div>
+    </form>
   </div>
 
   <script>

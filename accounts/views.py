@@ -7,7 +7,7 @@ from django.views.decorators.cache import never_cache
 
 from iskcongkp.forms import SignInForm
 from .forms import SignUpStartForm, SignUpVerifyForm, SignInStartForm, SignInVerifyForm
-from .models import Customer
+# Decouple from Customer profile model; use User and Donor instead
 from .emails import send_welcome_email, send_signup_otp_email, send_login_otp_email
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 def _generate_customer_id() -> str:
+    """Generate a unique username-like ID without relying on Customer model."""
     base = f"C{uuid.uuid4().hex[:10].upper()}"
-    while Customer.objects.filter(customer_id=base).exists() or User.objects.filter(username=base).exists():
+    while User.objects.filter(username=base).exists():
         base = f"C{uuid.uuid4().hex[:10].upper()}"
     return base
 
@@ -112,13 +113,13 @@ def signup_view(request):
                     verify_form.add_error("otp", "Invalid code. Please try again.")
                     return render(request, "signup.html", {"start_form": start_form, "verify_form": verify_form, "otp_sent": True})
 
-                # Create user and customer
+                # Create user only (no Customer profile)
                 first_name = otp_state["first_name"].strip()
                 last_name = otp_state.get("last_name", "").strip()
                 email = otp_state["email"].strip().lower()
                 mobile = otp_state["mobile"].strip()
 
-                # Set username == customer_id (requirement), and also store phone on customer
+                # Generate a unique username; email remains the primary contact
                 customer_id = _generate_customer_id()
 
                 # Generate a secure random password; user will be logged in immediately
@@ -130,14 +131,7 @@ def signup_view(request):
                     first_name=first_name,
                     last_name=last_name,
                 )
-                Customer.objects.create(
-                    user=user,
-                    customer_id=customer_id,
-                    phone=mobile,
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                )
+                # No Customer row created; phone is currently unused in auth User
 
                 # Cleanup session OTP
                 try:
@@ -209,21 +203,17 @@ def signin_view(request):
                 from django.core.validators import validate_email as _validate_email
                 _validate_email(identifier)
                 user = User.objects.filter(email__iexact=identifier).first()
-                if not user:
-                    from .models import Customer
-                    cust = Customer.objects.filter(email__iexact=identifier).select_related("user").first()
-                    if cust:
-                        user = cust.user
                 if user:
                     target_email = user.email
             except Exception:
-                # Phone path
-                from .models import Customer
+                # Phone path via Donor profile
+                from donations.models import Donor
+                from donations.auth import ensure_user_for_donor
                 phone_norm = "".join(ch for ch in identifier if ch.isdigit() or ch in ["+","-"])
-                cust = Customer.objects.filter(phone=phone_norm).select_related("user").first()
-                if cust:
-                    user = cust.user
-                    target_email = cust.email or getattr(user, "email", None)
+                donor = Donor.objects.filter(phone_e164=phone_norm).first()
+                if donor and (donor.email or getattr(donor, "email_norm", None)):
+                    user = ensure_user_for_donor(donor)
+                    target_email = donor.email or user.email
 
             if not user or not target_email:
                 start_form.add_error("identifier", "No account found for this email or phone.")

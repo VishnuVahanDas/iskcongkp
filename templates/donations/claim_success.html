@@ -1,0 +1,7 @@
+<div class="card" style="max-width:720px;margin:2rem auto;padding:1rem;border:1px solid #ddd;border-radius:12px;font-family:system-ui,sans-serif;">
+  <h2>Welcome, {{ donor.name|default:"Devotee" }}!</h2>
+  <p>Your donor account is now active on this browser.</p>
+  <p>
+    <a href="{% url 'donations:donor_dashboard' %}">Go to your dashboard</a>
+  </p>
+</div>

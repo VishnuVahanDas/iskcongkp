@@ -124,7 +124,7 @@
                                 </div>
                                 <div class="col-xs-12 col-sm-12 col-md-12">
                                   <p><a class="btn btn-primary btn-sm active"
-                                      href="https://iskcondonate.com/sdaan" target="_blank">CLICK HERE TO
+                                      href="{% url 'donations:donate_form' %}?purpose=Shastra%20Daan">CLICK HERE TO
                                       DONATE</a></p>
                                 </div>
                               </div>
@@ -266,74 +266,15 @@
   </div>
   {% include 'body_script.html' %}
   <script>
-    // Lightweight helper to start a Shastra Daan payment session.
-    function _genOrderId(prefix, uid) {
-      try {
-        const p = String(prefix || 'SD').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-        const u = String(uid || 'GUEST').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-        const t = Date.now().toString(36).toUpperCase(); // compact timestamp
-        const r = Math.random().toString(36).slice(2,6).toUpperCase(); // 4-char random
-        const raw = p + u.slice(-6) + t + r; // keep last 6 of uid for uniqueness across users
-        return raw.replace(/[^A-Za-z0-9]/g, '').slice(0,20);
-      } catch (e) {
-        return 'SD' + Math.random().toString(36).slice(2, 10).toUpperCase();
-      }
-    }
-
-    async function _createSession(payload) {
-      const res = await fetch('/payments/create-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const ct = res.headers.get('content-type') || '';
-      const isJson = ct.includes('application/json');
-      const data = isJson ? await res.json() : await res.text();
-      if (!res.ok) {
-        const msg = (isJson ? (data && (data.error || data.message)) : '') || (typeof data === 'string' ? data : 'Request failed');
-        throw new Error(msg);
-      }
-      return data;
-    }
-
+    // Hybrid flow: send to guest donor form prefilled with purpose + amount
     function startShastraDonation(amount) {
       try {
-        const isAuth = {{ user.is_authenticated|yesno:'true,false' }};
-        if (!isAuth) { window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname); return false; }
-        const customer_id = '{{ user.username|escapejs }}';
-        const email = '{{ user.email|escapejs }}';
-        const phone = '{{ user.customer.phone|default:""|escapejs }}';
-        const first_name = '{{ user.first_name|escapejs }}';
-        const last_name = '{{ user.last_name|escapejs }}';
-
-        if (!email || !phone) {
-          alert('Your profile is missing email or mobile. Please update your account or contact support.');
-          return false;
-        }
-
-        const order_id = _genOrderId('SD', customer_id);
-        const payload = {
-          order_id: order_id,
-          amount: Number(amount).toFixed(2),
-          customer_id: customer_id,
-          customer_email: email,
-          customer_phone: phone,
-          first_name: first_name,
-          last_name: last_name,
-          description: 'Shastra Daan Sponsorship',
-          currency: 'INR'
-        };
-
-        const btns = document.querySelectorAll('a[onclick*="startShastraDonation"]');
-        btns.forEach(b => b.classList.add('disabled'));
-        _createSession(payload).then(resp => {
-          const links = (resp && resp.data && resp.data.payment_links) || {};
-          const url = links.web || links.mobile || '';
-          if (url) { window.location.href = url; }
-          else { alert('No payment link returned. Please try again.'); console.warn(resp); }
-        }).catch(err => {
-          alert('Failed to create session: ' + (err && err.message ? err.message : err));
-        }).finally(() => {
-          btns.forEach(b => b.classList.remove('disabled'));
-        });
+        const amt = Math.max(1, Math.round(Number(amount) || 0));
+        const url = `{% url 'donations:donate_form' %}?purpose=${encodeURIComponent('Shastra Daan')}&amount=${encodeURIComponent(amt)}`;
+        window.location.href = url;
       } catch (e) {
-        alert('Something went wrong. Please try again.');
+        const url = `{% url 'donations:donate_form' %}?purpose=Shastra%20Daan`;
+        window.location.href = url;
       }
       return false;
     }

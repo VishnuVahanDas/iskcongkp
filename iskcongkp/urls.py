@@ -28,9 +28,9 @@ from accounts.views import signup_view  # Use OTP-based signup flow
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
-    path("payments/", include("payments.urls")),
+    path("payments/", include(("payments.urls", "payments"), namespace="payments")),
     path("", include("homepage.urls")),
-    path("donation/", include("donation.urls")),
+    path("donations/", include(("donations.urls", "donations"), namespace="donations")),
     path("who-we-are/", include("who_we_are.urls")),
     path("services/", include("services.urls")),
     path("festivals/", include("festivals.urls")),
