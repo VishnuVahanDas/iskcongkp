@@ -28,10 +28,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 #DEBUG = True
-ALLOWED_HOSTS = ["iskcongorakhpur.com"]
+ALLOWED_HOSTS = ["iskcongorakhpur.com", "www.iskcongorakhpur.com"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://iskcongorakhpur.com"
+    "https://iskcongorakhpur.com",
+    "https://www.iskcongorakhpur.com",
     "https://smartgateway.hdfcbank.com",
     "https://smartgatewayuat.hdfcbank.com",
     "https://*.juspay.in",
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'accounts',
     'payments',
     'donation',
     'homepage',
@@ -157,3 +159,42 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Social login Django allauth settings
 SITE_ID = 1
 MAINTENANCE_MODE = False
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("SMTP_HOST", "smtpout.secureserver.net")
+EMAIL_PORT = int(os.getenv("SMTP_PORT", "465"))      # or 587
+EMAIL_HOST_USER = os.getenv("SMTP_USER")            # full email, e.g. you@yourdomain.com
+EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASS")
+EMAIL_USE_SSL = os.getenv("SMTP_USE_SSL", "true").lower() == "true"   # true if port 465
+EMAIL_USE_TLS = os.getenv("SMTP_USE_TLS", "false").lower() == "true"  # true if port 587
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
+EMAIL_FAIL_SILENTLY = os.getenv("EMAIL_FAIL_SILENTLY", "true").lower() == "true"
+
+# Basic logging to surface email/send issues in console
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'accounts.emails': {
+            'handlers': ['console'],
+            'level': os.getenv('EMAIL_LOG_LEVEL', 'INFO').upper(),
+            'propagate': False,
+        },
+        'accounts.views': {
+            'handlers': ['console'],
+            'level': os.getenv('APP_LOG_LEVEL', 'INFO').upper(),
+            'propagate': False,
+        },
+        'django.core.mail': {
+            'handlers': ['console'],
+            'level': os.getenv('EMAIL_SMTP_LOG_LEVEL', 'WARNING').upper(),
+            'propagate': False,
+        },
+    },
+}

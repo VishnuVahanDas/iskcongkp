@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Test Payment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --muted:#6b7280; --bg:#fff; --border:#e5e7eb; --accent:#111827; --ok:#047857; --err:#b91c1c; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 2rem; background: var(--bg); color: #111; }
+    .card { max-width: 780px; margin: auto; padding: 1.25rem; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .section { margin: 1rem 0; }
+    .row { display: grid; grid-template-columns: 1fr 2fr; gap: .75rem; align-items: center; margin: .5rem 0; }
+    .row > label { color: var(--muted); font-size: .95rem; }
+    input[type="text"], input[type="number"], textarea { width: 100%; padding: .6rem .7rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; }
+    input[readonly] { background: #f9fafb; color: #374151; }
+    textarea { min-height: 80px; resize: vertical; }
+    .muted { color: var(--muted); font-size: .95rem; }
+    .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .65rem 1rem; border-radius: 8px; border: 1px solid #111; background: #111; color: #fff; cursor: pointer; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .note { padding: .75rem; border: 1px dashed var(--border); border-radius: 8px; background: #fafafa; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .center { text-align: center; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Test Payment</h2>
+
+    {% if user.is_authenticated %}
+      <p class="muted">Your customer details are pre-filled from your account.</p>
+
+      <div class="section">
+        <h3>Customer</h3>
+        <div class="row"><label>Customer ID (username)</label><input type="text" id="customer_id" value="{{ user.username }}" readonly></div>
+        <div class="row"><label>First name</label><input type="text" id="first_name" value="{{ user.first_name }}" readonly></div>
+        <div class="row"><label>Last name</label><input type="text" id="last_name" value="{{ user.last_name }}" readonly></div>
+        <div class="row"><label>Email</label><input type="text" id="email" value="{{ user.email }}" readonly></div>
+        <div class="row"><label>Mobile</label><input type="text" id="mobile" value="{{ user.mobile }}" readonly></div>
+      </div>
+
+      <div class="section">
+        <h3>Payment</h3>
+        <div class="row"><label>Amount (INR)</label><input type="number" id="amount" placeholder="Eg. 501" min="1" step="1"></div>
+        <div class="row"><label>Reason / Description</label><textarea id="reason" placeholder="Eg. General donation or test payment..."></textarea></div>
+        <div class="row"><label>Order ID</label><input type="text" id="order_id" placeholder="Auto-generated if left blank"></div>
+        <div class="row"><label></label><button id="payBtn" class="btn">Proceed to Pay</button></div>
+        <p id="msg" class="muted"></p>
+      </div>
+
+      <div class="section note">
+        <div class="muted">On submit we create an order session and redirect you to the bank page. Status can be checked later on the Return page.</div>
+      </div>
+
+      <script>
+        function genOrderId() {
+          const uid = document.getElementById('customer_id').value || 'guest';
+          const t = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
+          return `ORD-${uid}-${t}`.replace(/[^A-Za-z0-9\-]/g, '');
+        }
+
+        async function createSession(payload) {
+          const res = await fetch('/payments/create-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error(await res.text());
+          return res.json();
+        }
+
+        document.getElementById('payBtn').addEventListener('click', async () => {
+          const msg = document.getElementById('msg');
+          msg.className = 'muted'; msg.textContent = '';
+          const amount = (document.getElementById('amount').value || '').trim();
+          const reason = (document.getElementById('reason').value || '').trim();
+          const customer_id = (document.getElementById('customer_id').value || '').trim();
+          const customer_email = (document.getElementById('email').value || '').trim();
+          const customer_phone = (document.getElementById('mobile').value || '').trim();
+          let order_id = (document.getElementById('order_id').value || '').trim();
+          if (!order_id) order_id = genOrderId();
+
+          if (!amount || Number(amount) <= 0) { msg.className = 'err'; msg.textContent = 'Please enter a valid amount.'; return; }
+          if (!customer_id || !customer_email || !customer_phone) { msg.className = 'err'; msg.textContent = 'Missing customer details.'; return; }
+
+          document.getElementById('order_id').value = order_id;
+          const payload = {
+            order_id,
+            amount,
+            customer_id,
+            customer_email,
+            customer_phone,
+            first_name: (document.getElementById('first_name').value || ''),
+            last_name: (document.getElementById('last_name').value || ''),
+            description: reason,
+            currency: 'INR'
+          };
+
+          const btn = document.getElementById('payBtn');
+          btn.disabled = true; msg.textContent = 'Creating session…';
+          try {
+            const resp = await createSession(payload);
+            const links = (resp && resp.data && resp.data.payment_links) || {};
+            const url = links.web || links.mobile || '';
+            if (url) {
+              msg.className = 'ok'; msg.textContent = 'Redirecting to bank…';
+              window.location.href = url;
+            } else {
+              msg.className = 'err'; msg.textContent = 'No payment link returned.';
+              console.warn('Create-session response:', resp);
+            }
+          } catch (e) {
+            msg.className = 'err';
+            msg.textContent = 'Failed to create session: ' + (e.message || e);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      </script>
+
+    {% else %}
+      <div class="section center">
+        <p class="muted">Please login to proceed with payment.</p>
+        <p><a class="btn" href="{% url 'login' %}">Login</a></p>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

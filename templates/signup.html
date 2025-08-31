@@ -8,6 +8,17 @@
         .password-helptext {
             font-size: 0.85rem;
         }
+        /* Signup layout responsive tweaks */
+        .signup-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            text-align: left; /* default: left on mobile */
+        }
+        /* On md+ screens, center the form column and allow centered headings */
+        @media (min-width: 768px) {
+            .signup-wrapper { text-align: center; }
+            .signup-form-col { margin: 0 auto; }
+        }
     </style>
 </head>
 <body class="layout-no-sidebars path-contact-usk node--type-page">
@@ -41,64 +52,63 @@
                                             <article role="article" class="node node--type-page node--view-mode-full clearfix">
                                                 <div class="node__content clearfix">
                                                     <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item">
-                                                        <div class="col-xs-12 col-sm-12 col-md-12" style="display:flex;flex-wrap:wrap;text-align:left;">
-                                                            <div class="col-xs-12 col-sm-12 col-md-5">
-                                                                <form method="post" class="text-start signup-form">
+                                                        <div class="col-xs-12 col-sm-12 col-md-12 signup-wrapper">
+                                                            <div class="col-xs-12 col-sm-12 col-md-5 signup-form-col">
+                                                                <form method="post" class="signup-form">
                                                                     {% csrf_token %}
-                                                                    {{ form.non_field_errors }}
+                                                                    {% if start_form %}
+                                                                        {{ start_form.non_field_errors }}
+                                                                    {% endif %}
                                                                     <div class="row">
                                                                         <div class="col-md-6 mb-3">
-                                                                            {{ form.first_name.label_tag }}
-                                                                            {{ form.first_name }}
-                                                                            {% for error in form.first_name.errors %}
+                                                                            {{ start_form.first_name.label_tag }}
+                                                                            {{ start_form.first_name }}
+                                                                            {% for error in start_form.first_name.errors %}
                                                                                 <div class="text-danger">{{ error }}</div>
                                                                             {% endfor %}
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">
-                                                                            {{ form.last_name.label_tag }}
-                                                                            {{ form.last_name }}
-                                                                            {% for error in form.last_name.errors %}
+                                                                            {{ start_form.last_name.label_tag }}
+                                                                            {{ start_form.last_name }}
+                                                                            {% for error in start_form.last_name.errors %}
                                                                                 <div class="text-danger">{{ error }}</div>
                                                                             {% endfor %}
                                                                         </div>
                                                                     </div>
                                                                     <div class="row">
                                                                         <div class="col-md-6 mb-3">
-                                                                            {{ form.email.label_tag }}
-                                                                            {{ form.email }}
-                                                                            {% for error in form.email.errors %}
+                                                                            {{ start_form.email.label_tag }}
+                                                                            {{ start_form.email }}
+                                                                            {% for error in start_form.email.errors %}
                                                                                 <div class="text-danger">{{ error }}</div>
                                                                             {% endfor %}
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">
-                                                                            {{ form.mobile.label_tag }}
-                                                                            {{ form.mobile }}
-                                                                            {% for error in form.mobile.errors %}
+                                                                            {{ start_form.mobile.label_tag }}
+                                                                            {{ start_form.mobile }}
+                                                                            {% for error in start_form.mobile.errors %}
                                                                                 <div class="text-danger">{{ error }}</div>
                                                                             {% endfor %}
                                                                         </div>
                                                                     </div>
-                                                                    <div class="row">
-                                                                        <div class="col-md-6 mb-3">
-                                                                            {{ form.password1.label_tag }}
-                                                                            {{ form.password1 }}
-                                                                            {% for error in form.password1.errors %}
-                                                                                <div class="text-danger">{{ error }}</div>
-                                                                            {% endfor %}
-                                                                            <div class="text-muted password-helptext">{{ form.password1.help_text|safe }}</div>
+                                                                    {% if otp_sent %}
+                                                                        <div class="row">
+                                                                            <div class="col-md-12 mb-3">
+                                                                                {{ verify_form.non_field_errors }}
+                                                                                <label for="id_otp">Enter OTP sent to your email</label>
+                                                                                {{ verify_form.otp }}
+                                                                                {% for error in verify_form.otp.errors %}
+                                                                                    <div class="text-danger">{{ error }}</div>
+                                                                                {% endfor %}
+                                                                            </div>
                                                                         </div>
-                                                                        <div class="col-md-6 mb-3">
-                                                                            {{ form.password2.label_tag }}
-                                                                            {{ form.password2 }}
-                                                                            {% for error in form.password2.errors %}
-                                                                                <div class="text-danger">{{ error }}</div>
-                                                                            {% endfor %}
-                                                                        </div>
-                                                                    </div>
-                                                                    <!-- first_name and last_name fields included; username is generated -->
-                                                                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                                                                        <button type="submit" name="action" value="verify_otp" class="btn btn-primary">Verify & Create Account</button>
+                                                                        <button type="submit" name="action" value="send_otp" class="btn btn-link" style="margin-left:8px;">Resend OTP</button>
+                                                                    {% else %}
+                                                                        <button type="submit" name="action" value="send_otp" class="btn btn-primary">Send OTP</button>
+                                                                    {% endif %}
                                                                 </form>
-                                                                <p class="mt-3">Already have an account? <a href="{% url 'login' %}">Sign in</a>.</p>
+                                                                <p class="mt-3">Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a>.</p>
                                                             </div>
                                                         <div class="col-xs-12 col-sm-12 col-md-5">
                                                             <div class="align-right">

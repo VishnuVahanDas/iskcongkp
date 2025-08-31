@@ -13,6 +13,10 @@ def _json_body(request):
     try: return json.loads(request.body.decode("utf-8"))
     except Exception: return None
 
+def hdfc_test_page_view(request):
+    """Render a simple test page to initiate an HDFC payment session."""
+    return render(request, "payments/hdfc_test.html")
+
 @csrf_exempt
 @require_POST
 def hdfc_create_session_view(request):

@@ -22,10 +22,12 @@ from django.conf.urls.static import static
 from django.views.static import serve
 
 
-from .views import  contact_view, privacy_view , terms_view, maintenance_view, signup_view, signin_view, logout_view
+from .views import  contact_view, privacy_view , terms_view, maintenance_view, signin_view, logout_view
+from accounts.views import signup_view  # Use OTP-based signup flow
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/", include("accounts.urls")),
     path("payments/", include("payments.urls")),
     path("", include("homepage.urls")),
     path("donation/", include("donation.urls")),

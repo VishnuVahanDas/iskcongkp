@@ -1,0 +1,14 @@
+Hare Krishna {{ username }},
+
+Your account has been created successfully.
+
+Account Info
+- Name: {{ username }}
+- Email: {{ email }}
+
+{% if login_url %}Sign in: {{ login_url }}
+{% endif %}
+For your security, we never email passwords.
+
+Yours in service,
+ISKCON Gorakhpur

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to ISKCON</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { padding: 20px; border: 1px solid #eee; max-width: 600px; margin: auto; }
+        .header { background-color: #f7f7f7; padding: 10px; text-align: center; }
+        .details-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        .details-table th, .details-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Thank you for choosing ISKCON !!</h2>
+        </div>
+        <p>Hare Krishna {{ username }},</p>
+        <p>Your account has been created successfully. Here are your details:</p>
+        <br>
+        <h3>Account Info</h3>
+        <ul>
+            <li><strong>Name:</strong> {{ username }}</li>
+            <li><strong>Email:</strong> {{ email }}</li>
+        </ul>
+        <br>
+        {% if login_url %}
+        <p>You can sign in here: <a href="{{ login_url }}">{{ login_url }}</a></p>
+        {% endif %}
+        <p style="color:#666; font-size: 12px;">For your security, we never email passwords.</p>
+        <br>
+        <p>Yours in service,<br>Team ISKCON Gorakhpur</p>
+    </div>
+</body>
+</html>
