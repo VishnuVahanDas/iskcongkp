@@ -65,13 +65,15 @@ def hdfc_webhook(request):
     # Resolve donation robustly:
     # 1) If gateway sent back our order_id (which we set to our txn_id), match on Donation.txn_id == gw_order_id
     # 2) Else, if we stored the gateway order/session id on Donation.order_id, match on that
-    # 3) Else, try matching on the gateway transaction id to Donation.txn_id (legacy/alternate maps)
+    # 3) Else, try matching on the gateway transaction id to Donation.txn_id
+    #    or Donation.order_id (legacy/alternate maps)
     donation = None
     if gw_order_id:
         donation = Donation.objects.filter(txn_id=gw_order_id).first() or \
                    Donation.objects.filter(order_id=gw_order_id).first()
     if donation is None and gw_txn_id:
-        donation = Donation.objects.filter(txn_id=gw_txn_id).first()
+        donation = Donation.objects.filter(txn_id=gw_txn_id).first() or \
+                   Donation.objects.filter(order_id=gw_txn_id).first()
     if donation is None:
         return HttpResponse("unknown order", status=202)
 
