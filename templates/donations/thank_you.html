@@ -1,3 +1,11 @@
 <h2>Hare Krishna 🙏</h2>
-<p>Thank you! Your payment status will be confirmed by email within a few seconds.</p>
+{% if server_checked %}
+  {% if is_paid %}
+    <p>Your donation was successful. Thank you!</p>
+  {% else %}
+    <p>Your payment status is: {{ status|default:"PENDING" }}</p>
+  {% endif %}
+{% else %}
+  <p>Thank you! Your payment status will be confirmed by email within a few seconds.</p>
+{% endif %}
 <p>You may close this window.</p>

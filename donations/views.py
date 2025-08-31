@@ -8,12 +8,16 @@ import re
 from django.urls import reverse, NoReverseMatch
 from django.conf import settings
 
-from .services import get_or_create_donor, issue_magic_link, issue_email_otp
+from .services import get_or_create_donor, issue_magic_link, issue_email_otp, mark_paid_and_receipt
 from .models import Donation, MagicLinkToken, OtpCode
 from .utils import gen_txn_id
 from .emails import send_magic_link_email, send_otp_email
 from .auth import login_donor
-from payments.integrations.hdfc import create_session as hdfc_create_session, HdfcError
+from payments.integrations.hdfc import (
+    create_session as hdfc_create_session,
+    HdfcError,
+    get_order_status,
+)
 from django.utils import timezone
 
 
@@ -123,8 +127,59 @@ def donate_checkout(request):
 # --- thank you page (return URL) ---
 @require_GET
 def thank_you(request):
-    # DO NOT trust query status; show a friendly page.
-    return render(request, "donations/thank_you.html")
+    txn_id = (
+        request.GET.get("txn_id")
+        or request.GET.get("order_id")
+        or request.COOKIES.get("hdfc_last_order_id")
+        or ""
+    )
+    customer_id = request.GET.get("customer_id") or request.COOKIES.get("hdfc_customer_id") or ""
+    ctx = {"txn_id": txn_id, "status": "", "is_paid": False, "server_checked": False}
+
+    donation = None
+    if txn_id:
+        donation = Donation.objects.filter(txn_id=txn_id).select_related("donor").first()
+        if donation and not customer_id:
+            donor = donation.donor
+            customer_id = donor.email or donor.phone_e164 or f"donor-{donor.id}"
+
+    if txn_id and customer_id:
+        try:
+            result = get_order_status(txn_id, customer_id)
+            data = result.get("data") or {}
+
+            def _extract_status(d: dict) -> str:
+                s = (
+                    (d or {}).get("status")
+                    or (d or {}).get("order", {}).get("status")
+                    or (d or {}).get("payment", {}).get("status")
+                    or (d or {}).get("transaction", {}).get("status")
+                    or (d or {}).get("result", {}).get("status")
+                    or ""
+                )
+                return str(s).upper()
+
+            norm_status = _extract_status(data)
+            success_statuses = {"CHARGED", "SUCCESS", "SUCCESSFUL", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
+            is_paid = norm_status in success_statuses
+
+            ctx.update({"status": norm_status, "is_paid": is_paid, "server_checked": True})
+
+            if is_paid and donation and donation.status != "SUCCESS":
+                mode = data.get("payment_method") or data.get("payment_method_type") or ""
+                try:
+                    mark_paid_and_receipt(donation, mode, data)
+                except Exception:
+                    pass
+        except HdfcError:
+            ctx.update({"status": "ERROR", "server_checked": True})
+
+    resp = render(request, "donations/thank_you.html", ctx)
+    if txn_id:
+        resp.set_cookie("hdfc_last_order_id", txn_id, max_age=1800, secure=True, samesite="Lax")
+    if customer_id:
+        resp.set_cookie("hdfc_customer_id", customer_id, max_age=1800, secure=True, samesite="Lax")
+    return resp
 
 # --- magic link request (post-payment or manual) ---
 @require_POST
