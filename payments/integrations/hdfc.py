@@ -4,6 +4,7 @@ load_dotenv()
 import os, re, json, base64
 from decimal import Decimal, ROUND_HALF_UP
 import requests
+from requests import RequestException
 
 HDFC_BASE_URL    = os.getenv("HDFC_BASE_URL", "https://smartgateway.hdfcbank.com")
 HDFC_API_KEY     = os.getenv("HDFC_API_KEY", "")
@@ -34,9 +35,12 @@ def _sanitize_order_id(order_id: str) -> str:
     return (re.sub(r"[^A-Za-z0-9]", "", order_id or ""))[:20]  # <21 alnum
 
 def _amount_str(amount) -> str:
-    q = Decimal(str(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    s = format(q, "f")
-    return s if (("." in s) and (not s.endswith(".00"))) else (s[:-3] if s.endswith(".00") else s)
+    try:
+        q = Decimal(str(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        s = format(q, "f")
+        return s if (("." in s) and (not s.endswith(".00"))) else (s[:-3] if s.endswith(".00") else s)
+    except Exception:
+        raise HdfcError("Invalid amount value")
 
 def create_session(*, order_id, amount, customer_id, customer_email, customer_phone,
                    first_name="", last_name="", description="", currency="INR") -> dict:
@@ -58,7 +62,10 @@ def create_session(*, order_id, amount, customer_id, customer_email, customer_ph
         "currency": currency or "INR",
     }
     url = f"{HDFC_BASE_URL}/session"
-    resp = requests.post(url, headers=_headers(customer_id), json=payload, timeout=30)
+    try:
+        resp = requests.post(url, headers=_headers(customer_id), json=payload, timeout=30)
+    except RequestException as e:
+        raise HdfcError(f"Gateway request failed: {e}")
     try: data = resp.json()
     except Exception: data = {"raw": resp.text}
     if resp.status_code == 200: return {"ok": True, "status_code": 200, "data": data}
@@ -70,7 +77,10 @@ def create_session(*, order_id, amount, customer_id, customer_email, customer_ph
 
 def get_order_status(order_id: str, customer_id: str) -> dict:
     url = f"{HDFC_BASE_URL}/orders/{_sanitize_order_id(order_id)}"
-    resp = requests.get(url, headers=_headers(customer_id), timeout=30)
+    try:
+        resp = requests.get(url, headers=_headers(customer_id), timeout=30)
+    except RequestException as e:
+        raise HdfcError(f"Gateway request failed: {e}")
     try: data = resp.json()
     except Exception: data = {"raw": resp.text}
     if resp.status_code == 200: return {"ok": True, "status_code": 200, "data": data}

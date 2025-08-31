@@ -1,12 +1,11 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, FieldError
 from django.core.validators import validate_email
 
 
-class SignUpForm(UserCreationForm):
-    """Custom user creation form with additional fields."""
+class SignUpForm(forms.ModelForm):
+    """Signup without asking for password; generates one automatically."""
 
     email = forms.EmailField(required=True)
     mobile = forms.CharField(required=True, max_length=15)
@@ -20,33 +19,38 @@ class SignUpForm(UserCreationForm):
             "last_name",
             "email",
             "mobile",
-            "password1",
-            "password2",
         )
         widgets = {
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "mobile": forms.TextInput(attrs={"class": "form-control"}),
-            "password1": forms.PasswordInput(attrs={"class": "form-control"}),
-            "password2": forms.PasswordInput(attrs={"class": "form-control"}),
         }
 
     def save(self, commit=True):
-        """Create user with a unique username based on names."""
+        """Create user, set unique username, and generate a random password."""
         user = super().save(commit=False)
         first = self.cleaned_data.get("first_name", "").strip().lower()
         last = self.cleaned_data.get("last_name", "").strip().lower()
-        base_username = f"{first}.{last}"
+        base_username = f"{first}.{last}".strip(".") or first or last or "user"
         username = base_username
         counter = 1
         while User.objects.filter(username=username).exists():
             username = f"{base_username}{counter}"
             counter += 1
         user.username = username
+
+        # Generate a readable, strong password
+        random_password = User.objects.make_random_password()
+        user.set_password(random_password)
+
         if commit:
             user.save()
-            self.save_m2m()
+            # No M2M on auth.User default, but call for completeness if extended
+            try:
+                self.save_m2m()
+            except Exception:
+                pass
         return user
 
 

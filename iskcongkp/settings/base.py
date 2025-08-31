@@ -88,6 +88,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'iskcongkp.wsgi.application'
 
+# Friendly CSRF failure page
+CSRF_FAILURE_VIEW = 'iskcongkp.views.csrf_failure'
+
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -162,7 +165,7 @@ MAINTENANCE_MODE = False
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("SMTP_HOST", "smtpout.secureserver.net")
-EMAIL_PORT = int(os.getenv("SMTP_PORT", "465"))      # or 587
+EMAIL_PORT = int(os.getenv("SMTP_PORT", "465"))     # or 587
 EMAIL_HOST_USER = os.getenv("SMTP_USER")            # full email, e.g. you@yourdomain.com
 EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASS")
 EMAIL_USE_SSL = os.getenv("SMTP_USE_SSL", "true").lower() == "true"   # true if port 465

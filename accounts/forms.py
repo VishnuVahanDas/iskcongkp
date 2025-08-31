@@ -28,3 +28,16 @@ class SignUpStartForm(forms.Form):
 class SignUpVerifyForm(forms.Form):
     otp = forms.CharField(label="OTP", max_length=6, widget=forms.TextInput(attrs={"class": "form-control", "autocomplete": "one-time-code"}))
 
+class SignInStartForm(forms.Form):
+    identifier = forms.CharField(
+        label="Email or phone",
+        max_length=150,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+class SignInVerifyForm(forms.Form):
+    otp = forms.CharField(
+        label="OTP",
+        max_length=6,
+        widget=forms.TextInput(attrs={"class": "form-control", "autocomplete": "one-time-code"}),
+    )

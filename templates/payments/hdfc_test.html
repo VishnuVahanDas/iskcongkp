@@ -37,12 +37,12 @@
         <div class="row"><label>First name</label><input type="text" id="first_name" value="{{ user.first_name }}" readonly></div>
         <div class="row"><label>Last name</label><input type="text" id="last_name" value="{{ user.last_name }}" readonly></div>
         <div class="row"><label>Email</label><input type="text" id="email" value="{{ user.email }}" readonly></div>
-        <div class="row"><label>Mobile</label><input type="text" id="mobile" value="{{ user.mobile }}" readonly></div>
+        <div class="row"><label>Mobile</label><input type="text" id="mobile" value="{{ mobile|default:'' }}" readonly></div>
       </div>
 
       <div class="section">
         <h3>Payment</h3>
-        <div class="row"><label>Amount (INR)</label><input type="number" id="amount" placeholder="Eg. 501" min="1" step="1"></div>
+        <div class="row"><label>Amount (INR)</label><input type="number" id="amount" placeholder="Eg. 1.00" min="0.01" step="0.01"></div>
         <div class="row"><label>Reason / Description</label><textarea id="reason" placeholder="Eg. General donation or test payment..."></textarea></div>
         <div class="row"><label>Order ID</label><input type="text" id="order_id" placeholder="Auto-generated if left blank"></div>
         <div class="row"><label></label><button id="payBtn" class="btn">Proceed to Pay</button></div>
@@ -55,9 +55,10 @@
 
       <script>
         function genOrderId() {
-          const uid = document.getElementById('customer_id').value || 'guest';
+          const uid = (document.getElementById('customer_id').value || 'guest');
           const t = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
-          return `ORD-${uid}-${t}`.replace(/[^A-Za-z0-9\-]/g, '');
+          // Alnum only and max 20 chars to match server + bank constraints
+          return (`ORD${uid}${t}`).replace(/[^A-Za-z0-9]/g, '').slice(0,20);
         }
 
         async function createSession(payload) {
@@ -66,8 +67,14 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
-          if (!res.ok) throw new Error(await res.text());
-          return res.json();
+          const ct = res.headers.get('content-type') || '';
+          const isJson = ct.includes('application/json');
+          const data = isJson ? await res.json() : await res.text();
+          if (!res.ok) {
+            const msg = (isJson ? (data && (data.error || data.message)) : '') || (typeof data === 'string' ? data : 'Request failed');
+            throw new Error(msg);
+          }
+          return data;
         }
 
         document.getElementById('payBtn').addEventListener('click', async () => {
@@ -80,6 +87,8 @@
           const customer_phone = (document.getElementById('mobile').value || '').trim();
           let order_id = (document.getElementById('order_id').value || '').trim();
           if (!order_id) order_id = genOrderId();
+          // mirror server-side sanitize: alnum + truncate to 20
+          order_id = order_id.replace(/[^A-Za-z0-9]/g, '').slice(0,20);
 
           if (!amount || Number(amount) <= 0) { msg.className = 'err'; msg.textContent = 'Please enter a valid amount.'; return; }
           if (!customer_id || !customer_email || !customer_phone) { msg.className = 'err'; msg.textContent = 'Missing customer details.'; return; }
@@ -96,6 +105,10 @@
             description: reason,
             currency: 'INR'
           };
+
+          // For verification: this matches the required shape
+          // {"order_id":"$OID","amount":"1.00","customer_id":"cust-prod-0001","customer_email":"test@mail.com","customer_phone":"9876543210","first_name":"John","last_name":"Wick","description":"Prod smoke","currency":"INR"}
+          console.debug('payments/test create-session payload', payload);
 
           const btn = document.getElementById('payBtn');
           btn.disabled = true; msg.textContent = 'Creating session…';

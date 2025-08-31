@@ -15,8 +15,6 @@ class UsernameGenerationTests(TestCase):
                 "last_name": "Doe",
                 "email": "john1@example.com",
                 "mobile": "1234567890",
-                "password1": "complexpass123",
-                "password2": "complexpass123",
             }
         )
         self.assertTrue(form1.is_valid(), form1.errors)
@@ -29,8 +27,6 @@ class UsernameGenerationTests(TestCase):
                 "last_name": "Doe",
                 "email": "john2@example.com",
                 "mobile": "1234567891",
-                "password1": "complexpass123",
-                "password2": "complexpass123",
             }
         )
         self.assertTrue(form2.is_valid(), form2.errors)
@@ -43,11 +39,8 @@ class UsernameGenerationTests(TestCase):
                 "last_name": "Doe",
                 "email": "john3@example.com",
                 "mobile": "1234567892",
-                "password1": "complexpass123",
-                "password2": "complexpass123",
             }
         )
         self.assertTrue(form3.is_valid(), form3.errors)
         user3 = form3.save()
         self.assertEqual(user3.username, "john.doe2")
-

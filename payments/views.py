@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
 from datetime import timezone
 
-from .integrations.hdfc import create_session, get_order_status, HdfcError
+from .integrations.hdfc import create_session, get_order_status, HdfcError, _sanitize_order_id
 from .models import Order
 
 def _json_body(request):
@@ -14,8 +14,17 @@ def _json_body(request):
     except Exception: return None
 
 def hdfc_test_page_view(request):
-    """Render a simple test page to initiate an HDFC payment session."""
-    return render(request, "payments/hdfc_test.html")
+    """Render a simple test page to initiate an HDFC payment session.
+
+    Prefills customer info from the logged-in user's profile (Customer).
+    """
+    ctx = {}
+    if request.user.is_authenticated:
+        try:
+            ctx["mobile"] = getattr(request.user.customer, "phone", "") or ""
+        except Exception:
+            ctx["mobile"] = ""
+    return render(request, "payments/hdfc_test.html", ctx)
 
 @csrf_exempt
 @require_POST
@@ -28,9 +37,15 @@ def hdfc_create_session_view(request):
     if missing:
         return HttpResponseBadRequest(f"Missing fields: {', '.join(missing)}")
 
+    # Normalize order_id to match gateway and DB constraints (<=20 alnum)
+    raw_oid = str(body.get("order_id", ""))
+    oid = _sanitize_order_id(raw_oid)
+    if not oid:
+        return HttpResponseBadRequest("order_id must contain alphanumeric characters (max 20)")
+
     try:
         result = create_session(
-            order_id=body["order_id"],
+            order_id=oid,
             amount=body["amount"],
             customer_id=body["customer_id"],
             customer_email=body["customer_email"],
@@ -46,7 +61,7 @@ def hdfc_create_session_view(request):
         sdk = data.get("sdk_payload", None)
 
         Order.objects.update_or_create(
-            order_id=body["order_id"],
+            order_id=oid,
             defaults={
                 "bank_order_id": bank_id,
                 "status": str(data.get("status", "NEW")),
@@ -62,26 +77,30 @@ def hdfc_create_session_view(request):
         )
 
         resp = JsonResponse(result, status=200, safe=False)
-        resp.set_cookie("hdfc_last_order_id", body["order_id"], max_age=1800, secure=True, samesite="Lax")
+        resp.set_cookie("hdfc_last_order_id", oid, max_age=1800, secure=True, samesite="Lax")
         resp.set_cookie("hdfc_customer_id", body["customer_id"], max_age=1800, secure=True, samesite="Lax")
         return resp
 
     except HdfcError as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=400, safe=False)
+    except Exception as e:
+        # Ensure JSON error instead of HTML 500 page for the test client
+        return JsonResponse({"ok": False, "error": f"Server error: {str(e)}"}, status=500, safe=False)
 
 @require_GET
 def hdfc_order_status_view(request, order_id: str):
+    oid = _sanitize_order_id(order_id)
     customer_id = request.GET.get("customer_id", "")
     if not customer_id:
         return HttpResponseBadRequest("customer_id is required")
 
     try:
-        result = get_order_status(order_id, customer_id)
+        result = get_order_status(oid, customer_id)
         data = result["data"]
 
         # persist
         try:
-            order = Order.objects.get(order_id=order_id)
+            order = Order.objects.get(order_id=oid)
         except Order.DoesNotExist:
             order = None
 

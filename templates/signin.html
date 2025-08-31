@@ -38,26 +38,38 @@
                                                     <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item">
                                                         <div class="col-xs-12 col-sm-12 col-md-12" style="display:flex;flex-wrap:wrap;text-align:center;">
                                                             <div class="col-xs-12 col-sm-12 col-md-5" style="margin:0 auto;">
-                                                                <form method="post">
-                                                                    {% csrf_token %}
-                                                                    {{ form.non_field_errors }}
-                                                                    <div class="mb-3">
-                                                                        {{ form.identifier.label_tag }}
-                                                                        {{ form.identifier }}
-                                                                        {% for error in form.identifier.errors %}
-                                                                            <div class="text-danger">{{ error }}</div>
-                                                                        {% endfor %}
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        {{ form.password.label_tag }}
-                                                                        {{ form.password }}
-                                                                        {% for error in form.password.errors %}
-                                                                            <div class="text-danger">{{ error }}</div>
-                                                                        {% endfor %}
-                                                                    </div>
-                                                                    <button type="submit" class="btn btn-primary">Sign In</button>
-                                                                </form>
-                                                                <p class="mt-3">Don't have an account? <a href="{% url 'signup' %}">Sign up</a>.</p>
+                                                                {% if otp_sent %}
+                                                                    <form method="post">
+                                                                        {% csrf_token %}
+                                                                        <input type="hidden" name="action" value="verify_otp" />
+                                                                        {{ verify_form.non_field_errors }}
+                                                                        <div class="mb-3">
+                                                                            {{ verify_form.otp.label_tag }}
+                                                                            {{ verify_form.otp }}
+                                                                            {% for error in verify_form.otp.errors %}
+                                                                                <div class="text-danger">{{ error }}</div>
+                                                                            {% endfor %}
+                                                                        </div>
+                                                                        <button type="submit" class="btn btn-primary">Verify & Sign In</button>
+                                                                        <a class="btn btn-link" href="{% url 'accounts:login' %}?reset=1">Start over</a>
+                                                                    </form>
+                                                                {% else %}
+                                                                    <form method="post">
+                                                                        {% csrf_token %}
+                                                                        <input type="hidden" name="action" value="send_otp" />
+                                                                        {{ start_form.non_field_errors }}
+                                                                        <div class="mb-3">
+                                                                            {{ start_form.identifier.label_tag }}
+                                                                            {{ start_form.identifier }}
+                                                                            <div class="form-text">Enter your email or mobile number. We'll email an OTP to your registered email.</div>
+                                                                            {% for error in start_form.identifier.errors %}
+                                                                                <div class="text-danger">{{ error }}</div>
+                                                                            {% endfor %}
+                                                                        </div>
+                                                                        <button type="submit" class="btn btn-primary">Send OTP</button>
+                                                                    </form>
+                                                                    <p class="mt-3">Don't have an account? <a href="{% url 'signup' %}">Sign up</a>.</p>
+                                                                {% endif %}
                                                             </div>
                                                             <div class="col-xs-12 col-sm-12 col-md-5">
                                                                 <div class="align-right">

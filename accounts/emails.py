@@ -85,25 +85,58 @@ def send_signup_otp_email(*, email: str, username: str, code: str) -> bool:
         return False
     try:
         logger.info(
-            "Sending OTP email: to=%s subject=%s host=%s port=%s ssl=%s tls=%s from=%s",
+            "Sending signup OTP email: to=%s subject=%s host=%s port=%s ssl=%s tls=%s",
             email,
             "Your ISKCON Gorakhpur verification code",
             getattr(settings, "EMAIL_HOST", None),
             getattr(settings, "EMAIL_PORT", None),
             getattr(settings, "EMAIL_USE_SSL", None),
             getattr(settings, "EMAIL_USE_TLS", None),
-            getattr(settings, "DEFAULT_FROM_EMAIL", None),
         )
         subject = "Your ISKCON Gorakhpur verification code"
         context = {"username": username, "code": code}
         html_body = render_to_string("emails/otp_email.html", context)
         text_body = f"Dear {username},\nYour verification code is: {code}\n\nHare Krishna,\nTeam ISKCON"
-        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@iskcongorakhpur.com")
+        from_email = getattr(settings, "EMAIL_HOST_USER", None) or getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@iskcongorakhpur.com")
+        logger.info("Using from address for signup OTP: %s", from_email)
         msg = EmailMultiAlternatives(subject, text_body, from_email, [email])
         msg.attach_alternative(html_body, "text/html")
-        msg.send(fail_silently=_should_fail_silently())
-        return True
+        sent_count = msg.send(fail_silently=_should_fail_silently())
+        return bool(sent_count)
     except Exception:
         # Do not raise in user flow; log error for diagnosis
         logger.exception("Failed to send signup OTP email to %s", email)
+        return False
+
+
+def send_login_otp_email(*, email: str, username: str, code: str) -> bool:
+    """Send the email OTP during login verification.
+
+    Uses the same HTML template as signup OTP.
+    """
+    if not email:
+        return False
+    try:
+        logger.info(
+            "Sending login OTP email: to=%s subject=%s host=%s port=%s ssl=%s tls=%s",
+            email,
+            "Your ISKCON Gorakhpur login code",
+            getattr(settings, "EMAIL_HOST", None),
+            getattr(settings, "EMAIL_PORT", None),
+            getattr(settings, "EMAIL_USE_SSL", None),
+            getattr(settings, "EMAIL_USE_TLS", None),
+        )
+        subject = "Your ISKCON Gorakhpur login code"
+        context = {"username": username, "code": code}
+        html_body = render_to_string("emails/otp_email.html", context)
+        text_body = f"Dear {username},\nYour login code is: {code}\n\nHare Krishna,\nTeam ISKCON"
+        # Prefer authenticated SMTP user as from address for provider compatibility
+        from_email = getattr(settings, "EMAIL_HOST_USER", None) or getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@iskcongorakhpur.com")
+        logger.info("Using from address for login OTP: %s", from_email)
+        msg = EmailMultiAlternatives(subject, text_body, from_email, [email])
+        msg.attach_alternative(html_body, "text/html")
+        sent_count = msg.send(fail_silently=_should_fail_silently())
+        return bool(sent_count)
+    except Exception:
+        logger.exception("Failed to send login OTP email to %s", email)
         return False

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    {% include 'head.html' %}
+    <title>Security Check | ISKCON Gorakhpur</title>
+    <meta name="robots" content="noindex">
+    <style>
+        .hint { font-size: 0.95rem; color: #444; }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <script>
+        // Best effort: if user navigated here due to missing cookie, try reloading once
+        if (!sessionStorage.getItem('retried_csrf')) {
+            sessionStorage.setItem('retried_csrf', '1');
+            // Small delay to allow cookie set on GET
+            setTimeout(function(){ window.location.replace(document.referrer || '/login/'); }, 250);
+        }
+    </script>
+    <noscript></noscript>
+    <style>.btn{margin-right:8px;}</style>
+    <meta http-equiv="refresh" content="0;url=/login/?reset=1" />
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <div class="container" style="max-width:820px;margin:2rem auto 3rem;">
+        <h1>Security check failed (403)</h1>
+        <p class="hint">Your browser did not accept the security cookie (CSRF). For safety, we could not submit your form.</p>
+        {% if reason %}<p class="text-muted">Details: {{ reason }}</p>{% endif %}
+        <hr>
+        <p class="hint">
+            To continue:
+            <br>- Ensure cookies are enabled for this site.
+            <br>- Avoid using incognito modes with third‑party cookie blocking.
+            <br>- If you used the back button, try the form again.
+        </p>
+        <div class="mt-3">
+            <a class="btn btn-primary" href="/login/?reset=1">Go to Sign In</a>
+            <a class="btn btn-secondary" href="/signup/?reset=1">Go to Sign Up</a>
+        </div>
+    </div>
+    {% include 'footer.html' %}
+    {% include 'body_script.html' %}
+    <script>sessionStorage.removeItem('retried_csrf');</script>
+    </body>
+    </html>
+

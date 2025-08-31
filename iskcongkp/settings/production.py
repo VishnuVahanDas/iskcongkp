@@ -171,6 +171,16 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 EMAIL_FAIL_SILENTLY = os.getenv("EMAIL_FAIL_SILENTLY", "true").lower() == "true"
 
+# Cookies and proxy security
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_DOMAIN = ".iskcongorakhpur.com"
+CSRF_COOKIE_DOMAIN = ".iskcongorakhpur.com"
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # Basic logging to surface email/send issues in console
 LOGGING = {
     'version': 1,
