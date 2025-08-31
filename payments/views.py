@@ -7,6 +7,7 @@ from django.utils.dateparse import parse_datetime
 from datetime import timezone
 
 from .integrations.hdfc import create_session, get_order_status, HdfcError, _sanitize_order_id
+from .emails import send_payment_confirmation
 from .models import Order
 
 def _json_body(request):
@@ -72,7 +73,8 @@ def hdfc_create_session_view(request):
                 "customer_phone": body["customer_phone"],
                 "payment_links_web": links.get("web", "") or links.get("mobile", "") or "",
                 "sdk_payload": sdk,
-                "metadata": {"payment_links": links},
+                # persist description in metadata so receipts include purpose
+                "metadata": {"payment_links": links, "description": body.get("description", "Donation")},
             },
         )
 
@@ -125,9 +127,30 @@ def hdfc_order_status_view(request, order_id: str):
                     dt = dt.replace(tzinfo=timezone.utc)
                 order.order_expiry = dt
 
+            # Mark description if we get it back in metadata or leave existing
+            meta = order.metadata or {}
+            if (data.get("description") and not meta.get("description")):
+                meta["description"] = data.get("description")
+            order.metadata = meta
             order.save()
 
-        result["is_paid"] = str(data.get("status", "")).upper() == "CHARGED"
+        paid = str(data.get("status", "")).upper() == "CHARGED"
+        result["is_paid"] = paid
+
+        # Send confirmation emails once per paid order using metadata flags
+        try:
+            if paid and order:
+                meta = order.metadata or {}
+                already_sent = bool(meta.get("receipt_sent"))
+                if not already_sent:
+                    send_payment_confirmation(order=order)
+                    meta["receipt_sent"] = True
+                    order.metadata = meta
+                    order.save(update_fields=["metadata"])
+        except Exception:
+            # Do not break the status API on email issues
+            pass
+
         return JsonResponse(result, status=200, safe=False)
 
     except HdfcError as e:

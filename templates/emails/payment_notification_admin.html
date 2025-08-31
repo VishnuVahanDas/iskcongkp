@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>New Payment</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .container { padding: 16px; border: 1px solid #eee; max-width: 640px; margin: auto; }
+      table { width:100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { text-align:left; padding: 8px; border-bottom: 1px solid #eee; }
+      .muted { color: #555; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>New Payment</h2>
+      <p class="muted">A payment has been recorded.</p>
+      <table>
+        <tr><th>Purpose</th><td>{{ description }}</td></tr>
+        <tr><th>Order ID</th><td>{{ order_id }}</td></tr>
+        <tr><th>Bank Order ID</th><td>{{ bank_order_id }}</td></tr>
+        <tr><th>Status</th><td>{{ status }}</td></tr>
+        <tr><th>Amount</th><td>{{ currency }} {{ amount }}</td></tr>
+        <tr><th>Customer ID</th><td>{{ customer_id }}</td></tr>
+        <tr><th>Email</th><td>{{ customer_email }}</td></tr>
+        <tr><th>Phone</th><td>{{ customer_phone }}</td></tr>
+      </table>
+      <p class="muted">— ISKCON Gorakhpur</p>
+    </div>
+  </body>
+</html>
+

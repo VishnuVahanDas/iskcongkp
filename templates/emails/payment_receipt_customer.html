@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Your Payment Receipt</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .container { padding: 16px; border: 1px solid #eee; max-width: 640px; margin: auto; }
+      .muted { color: #555; }
+      table { width:100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { text-align:left; padding: 8px; border-bottom: 1px solid #eee; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Thank you for your contribution</h2>
+      <p class="muted">We have received your payment. Details are below.</p>
+      <table>
+        <tr><th>Purpose</th><td>{{ description }}</td></tr>
+        <tr><th>Order ID</th><td>{{ order_id }}</td></tr>
+        <tr><th>Amount</th><td>{{ currency }} {{ amount }}</td></tr>
+        <tr><th>Status</th><td>{{ status }}</td></tr>
+      </table>
+      <p class="muted">If you have any questions, please reply to this email.</p>
+      <p>Hare Krishna,<br/>ISKCON Gorakhpur</p>
+    </div>
+  </body>
+</html>
+

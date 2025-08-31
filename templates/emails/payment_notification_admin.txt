@@ -1,0 +1,13 @@
+New Payment Recorded
+
+Purpose: {{ description }}
+Order ID: {{ order_id }}
+Bank Order ID: {{ bank_order_id }}
+Status: {{ status }}
+Amount: {{ currency }} {{ amount }}
+Customer ID: {{ customer_id }}
+Email: {{ customer_email }}
+Phone: {{ customer_phone }}
+
+— ISKCON Gorakhpur
+

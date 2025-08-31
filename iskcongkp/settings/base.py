@@ -174,6 +174,9 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 EMAIL_FAIL_SILENTLY = os.getenv("EMAIL_FAIL_SILENTLY", "true").lower() == "true"
 
+# Payments notifications (dev/defaults)
+PAYMENTS_ADMIN_EMAILS = os.getenv("PAYMENTS_ADMIN_EMAILS", "vipul57612@gmail.com")
+
 # Basic logging to surface email/send issues in console
 LOGGING = {
     'version': 1,

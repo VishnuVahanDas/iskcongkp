@@ -1,0 +1,14 @@
+Hare Krishna,
+
+Thank you for your contribution.
+
+Purpose: {{ description }}
+Order ID: {{ order_id }}
+Amount: {{ currency }} {{ amount }}
+Status: {{ status }}
+
+If you have any questions, reply to this email.
+
+Yours in service,
+ISKCON Gorakhpur
+
