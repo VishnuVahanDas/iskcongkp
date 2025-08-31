@@ -269,9 +269,15 @@
     // Lightweight helper to start a Shastra Daan payment session.
     function _genOrderId(prefix, uid) {
       try {
-        const t = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
-        return (String(prefix || 'SD') + String(uid || 'guest') + t).replace(/[^A-Za-z0-9]/g, '').slice(0,20);
-      } catch (e) { return 'SD' + Math.random().toString(36).slice(2, 10).toUpperCase(); }
+        const p = String(prefix || 'SD').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const u = String(uid || 'GUEST').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const t = Date.now().toString(36).toUpperCase(); // compact timestamp
+        const r = Math.random().toString(36).slice(2,6).toUpperCase(); // 4-char random
+        const raw = p + u.slice(-6) + t + r; // keep last 6 of uid for uniqueness across users
+        return raw.replace(/[^A-Za-z0-9]/g, '').slice(0,20);
+      } catch (e) {
+        return 'SD' + Math.random().toString(36).slice(2, 10).toUpperCase();
+      }
     }
 
     async function _createSession(payload) {

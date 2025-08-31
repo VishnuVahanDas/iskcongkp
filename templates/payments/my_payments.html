@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>My Payments</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+    .card { max-width: 1000px; margin: auto; padding: 1.25rem; border: 1px solid #ddd; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: .6rem .5rem; border-bottom: 1px solid #eee; text-align: left; font-size: .95rem; }
+    .muted { color: #555; }
+    .status { font-weight: 600; }
+    .actions a { margin-right: .5rem; }
+    .pager { margin-top: 1rem; display: flex; gap: .5rem; }
+    .btn { display: inline-block; padding: .4rem .7rem; border: 1px solid #111; border-radius: 8px; text-decoration: none; color: #fff; background: #111; }
+    .btn.secondary { background: #fff; color: #111; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>My Payments</h2>
+    <p class="muted">Customer ID: {{ customer_id }}</p>
+
+    {% if orders %}
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Purpose</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in orders %}
+          <tr>
+            <td>{{ o.order_id }}</td>
+            <td>{{ o.currency }} {{ o.amount }}</td>
+            <td class="status">{{ o.status }}</td>
+            <td>{{ o.created_at }}</td>
+            <td>{{ o.metadata.description|default:'Donation' }}</td>
+            <td class="actions">
+              <a class="btn" href="/payments/return?order_id={{ o.order_id }}&customer_id={{ customer_id }}">View Status</a>
+              {% if o.payment_links_web %}
+                <a class="btn secondary" href="{{ o.payment_links_web }}" target="_blank">Pay Link</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="pager">
+        {% if has_prev %}<a class="btn secondary" href="?page={{ prev_page }}">Previous</a>{% endif %}
+        {% if has_next %}<a class="btn secondary" href="?page={{ next_page }}">Next</a>{% endif %}
+      </div>
+    {% else %}
+      <p class="muted">No payments found.</p>
+    {% endif %}
+  </div>
+</body>
+</html>
+

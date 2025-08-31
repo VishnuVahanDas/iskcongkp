@@ -2,11 +2,13 @@ import json
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.views.decorators.http import require_POST, require_GET
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
 from datetime import timezone
 
 from .integrations.hdfc import create_session, get_order_status, HdfcError, _sanitize_order_id
+from django.utils.crypto import get_random_string
 from .emails import send_payment_confirmation
 from .models import Order
 
@@ -27,6 +29,39 @@ def hdfc_test_page_view(request):
             ctx["mobile"] = ""
     return render(request, "payments/hdfc_test.html", ctx)
 
+
+@login_required
+def my_payments_view(request):
+    """List previous payments for the logged-in customer."""
+    # Determine the user's customer_id; default to username
+    cust_id = getattr(getattr(request.user, "customer", None), "customer_id", None) or request.user.username
+    qs = Order.objects.filter(customer_id=cust_id).order_by("-created_at")
+
+    # Very light pagination
+    try:
+        page = int(request.GET.get("page", "1"))
+        if page < 1: page = 1
+    except Exception:
+        page = 1
+    page_size = 10
+    start = (page - 1) * page_size
+    end = start + page_size
+    total = qs.count()
+    items = list(qs[start:end])
+    has_next = end < total
+    has_prev = start > 0
+
+    ctx = {
+        "orders": items,
+        "page": page,
+        "has_next": has_next,
+        "has_prev": has_prev,
+        "next_page": page + 1,
+        "prev_page": page - 1,
+        "customer_id": cust_id,
+    }
+    return render(request, "payments/my_payments.html", ctx)
+
 @csrf_exempt
 @require_POST
 def hdfc_create_session_view(request):
@@ -43,6 +78,21 @@ def hdfc_create_session_view(request):
     oid = _sanitize_order_id(raw_oid)
     if not oid:
         return HttpResponseBadRequest("order_id must contain alphanumeric characters (max 20)")
+    # Ensure uniqueness in our DB to avoid reusing a previously paid order_id
+    # If duplicate, tweak last 2 chars with a random suffix while keeping <=20 alnum
+    try:
+        max_attempts = 5
+        attempts = 0
+        base = oid
+        while Order.objects.filter(order_id=oid).exists() and attempts < max_attempts:
+            suffix = get_random_string(2, allowed_chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+            if len(base) >= 20:
+                oid = (base[:18] + suffix)
+            else:
+                oid = (base + suffix)[:20]
+            attempts += 1
+    except Exception:
+        pass
 
     try:
         result = create_session(
@@ -137,19 +187,29 @@ def hdfc_order_status_view(request, order_id: str):
         paid = str(data.get("status", "")).upper() == "CHARGED"
         result["is_paid"] = paid
 
-        # Send confirmation emails once per paid order using metadata flags
-        try:
-            if paid and order:
-                meta = order.metadata or {}
-                already_sent = bool(meta.get("receipt_sent"))
-                if not already_sent:
-                    send_payment_confirmation(order=order)
-                    meta["receipt_sent"] = True
-                    order.metadata = meta
-                    order.save(update_fields=["metadata"])
-        except Exception:
-            # Do not break the status API on email issues
-            pass
+        # Send confirmation emails once per paid order using a row-level lock to avoid duplicates
+        if paid and order:
+            from django.db import transaction
+            try:
+                should_send = False
+                with transaction.atomic():
+                    locked = Order.objects.select_for_update().get(pk=order.pk)
+                    meta = locked.metadata or {}
+                    if not bool(meta.get("receipt_sent")):
+                        meta["receipt_sent"] = True
+                        locked.metadata = meta
+                        locked.save(update_fields=["metadata"])
+                        should_send = True
+                if should_send:
+                    # Send after commit to avoid emailing on rolled-back tx
+                    try:
+                        from django.db import transaction as _tx
+                        _tx.on_commit(lambda: send_payment_confirmation(order=order))
+                    except Exception:
+                        send_payment_confirmation(order=order)
+            except Exception:
+                # Never break the status API due to email logic
+                pass
 
         return JsonResponse(result, status=200, safe=False)
 

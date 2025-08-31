@@ -153,11 +153,20 @@
                                             <a href="/contact" class="nav-link nav-link--contact-us" data-drupal-link-system-path="node/34">Contact Us</a>
                                         </li>
                                         {% if user.is_authenticated %}
-                                        <li class="nav-item px-md-3 px-lg-3 px-xl-3 px-xxl-3">
-                                            <a href="{% url 'logout' %}" class="nav-link">
+                                        <li class="nav-item menu-item--expanded dropdown px-md-3 px-lg-3 px-xl-3 px-xxl-3">
+                                            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
                                                 <i class="fas fa-user-circle"></i>
-                                                <span class="d-inline d-md-none ms-1">Logout</span>
+                                                <span class="d-inline d-md-none ms-1">Account</span>
                                             </a>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li class="dropdown-item px-md-3 px-lg-3 px-xl-3 px-xxl-3">
+                                                    <a href="{% url 'my_payments' %}" class="nav-link">My Payments</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="dropdown-item px-md-3 px-lg-3 px-xl-3 px-xxl-3">
+                                                    <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+                                                </li>
+                                            </ul>
                                         </li>
                                         {% else %}
                                         <li class="nav-item px-md-3 px-lg-3 px-xl-3 px-xxl-3">
