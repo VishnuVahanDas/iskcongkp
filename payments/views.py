@@ -270,6 +270,18 @@ def hdfc_return_view(request):
     order_id = request.POST.get("order_id") or request.GET.get("order_id") or ""
     customer_id = request.POST.get("customer_id") or request.GET.get("customer_id") or ""
 
+    # Fallback to cookies set before redirecting to gateway
+    if not order_id:
+        try:
+            order_id = request.COOKIES.get("hdfc_last_order_id", "")
+        except Exception:
+            order_id = ""
+    if not customer_id:
+        try:
+            customer_id = request.COOKIES.get("hdfc_customer_id", "")
+        except Exception:
+            customer_id = ""
+
     # Default context
     ctx = {"order_id": order_id, "customer_id": customer_id, "server_checked": False, "is_paid": False, "status": ""}
     
@@ -361,3 +373,14 @@ def hdfc_return_view(request):
     if customer_id:
         resp.set_cookie("hdfc_customer_id", customer_id, max_age=1800, secure=True, samesite="Lax")
     return resp
+
+
+@csrf_exempt
+def hdfc_webhook_alias(request):
+    """Alias endpoint for HDFC webhook at /payments/webhook.
+
+    Delegates to donations.webhook.hdfc_webhook so both
+    /donations/payments/webhook and /payments/webhook work.
+    """
+    from donations.webhook import hdfc_webhook as _donations_webhook
+    return _donations_webhook(request)

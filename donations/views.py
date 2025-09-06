@@ -121,7 +121,15 @@ def donate_checkout(request):
     )
 
     # --- send donor to HDFC hosted payment page ---
-    return redirect(redirect_url)
+    # Set short-lived cookies so return page can auto-reconcile even if gateway doesn't append params
+    resp = redirect(redirect_url)
+    try:
+        resp.set_cookie("hdfc_last_order_id", txn_id, max_age=1800, secure=True, samesite="Lax")
+        cust_id = donor.email or donor.phone_e164 or f"donor-{donor.id}"
+        resp.set_cookie("hdfc_customer_id", cust_id, max_age=1800, secure=True, samesite="Lax")
+    except Exception:
+        pass
+    return resp
 
 
 # --- thank you page (return URL) ---

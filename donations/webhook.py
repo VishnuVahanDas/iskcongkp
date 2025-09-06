@@ -22,6 +22,26 @@ def _check_basic_auth(request) -> bool:
         return False
     return (username == user) and (password == pwd)
 
+def _check_basic_auth_with_merchant_keys(request) -> bool:
+    """Allow verifying webhook using Merchant ID and API Key as Basic auth.
+
+    This lets you avoid configuring a separate webhook username/password in the dashboard.
+    Configure SmartGateway to send username = HDFC_MERCHANT_ID and password = HDFC_API_KEY.
+    """
+    mid = getattr(settings, "HDFC_MERCHANT_ID", None)
+    api_key = getattr(settings, "HDFC_API_KEY", None)
+    if not (mid and api_key):
+        return False
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Basic "):
+        return False
+    try:
+        raw = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
+        username, _, password = raw.partition(":")
+    except Exception:
+        return False
+    return (username == mid) and (password == api_key)
+
 def _check_custom_header(request) -> bool:
     key = getattr(settings, "HDFC_WEBHOOK_HEADER_KEY", None)
     val = getattr(settings, "HDFC_WEBHOOK_HEADER_VALUE", None)
@@ -34,12 +54,11 @@ def hdfc_webhook(request):
     if request.method != "POST":
         return HttpResponseBadRequest("POST only")
 
-    # 🔐 Auth: if any auth method is configured, enforce it; otherwise accept (for environments without webhook auth)
-    has_basic_cfg = bool(getattr(settings, "HDFC_WEBHOOK_BASIC_USER", None))
-    has_hdr_cfg = bool(getattr(settings, "HDFC_WEBHOOK_HEADER_KEY", None)) and bool(getattr(settings, "HDFC_WEBHOOK_HEADER_VALUE", None))
-    if has_basic_cfg or has_hdr_cfg:
-        if not (_check_basic_auth(request) or _check_custom_header(request)):
-            return HttpResponse("Unauthorized", status=401)
+    # 🔐 Auth: enforce Basic auth either via explicit webhook creds OR MerchantID/API Key, optional extra custom header
+    basic_ok = _check_basic_auth(request) or _check_basic_auth_with_merchant_keys(request)
+    header_ok = _check_custom_header(request)
+    if not (basic_ok or header_ok):
+        return HttpResponse("Unauthorized", status=401)
 
     try:
         payload = json.loads(request.body.decode("utf-8"))
@@ -51,7 +70,7 @@ def hdfc_webhook(request):
     # In our flow, we pass our internal txn_id as the gateway "order_id" when creating the session.
     gw_order_id = payload.get("order", {}).get("id") or payload.get("order_id") or ""
     gw_txn_id   = payload.get("transaction", {}).get("id") or payload.get("txn_id") or ""
-    # Normalize status from multiple possible keys
+    # Normalize status/event from multiple possible keys
     status      = str(
         payload.get("status") or
         (payload.get("order") or {}).get("status") or
@@ -60,6 +79,7 @@ def hdfc_webhook(request):
         (payload.get("result") or {}).get("status") or
         ""
     ).upper()
+    event       = str(payload.get("event") or payload.get("event_type") or "").upper()
     mode        = payload.get("payment", {}).get("method", "") or (payload.get("payment_method") or "")
 
     # Resolve donation robustly:
@@ -79,7 +99,8 @@ def hdfc_webhook(request):
 
     # Treat common success statuses from gateway as paid
     success_statuses = {"SUCCESS", "SUCCESSFUL", "CHARGED", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
-    if status in success_statuses:
+    success_events = {"ORDER_CHARGED", "PAYMENT_SUCCESS", "PAYMENT_CAPTURED", "ORDER_PAID"}
+    if (status in success_statuses) or (event in success_events):
         receipt = mark_paid_and_receipt(donation, mode, payload)
         # send receipt + magic link unless already sent via another path
         meta = donation.gateway_meta or {}
