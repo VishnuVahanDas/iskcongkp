@@ -283,7 +283,41 @@ def hdfc_return_view(request):
             customer_id = ""
 
     # Default context
-    ctx = {"order_id": order_id, "customer_id": customer_id, "server_checked": False, "is_paid": False, "status": ""}
+    ctx = {
+        "order_id": order_id,
+        "customer_id": customer_id,
+        "server_checked": False,
+        "is_paid": False,
+        "status": "",
+        # details we try to populate for a nicer UX
+        "amount": None,
+        "currency": None,
+        "customer_email": "",
+        "customer_phone": "",
+        "purpose": "",
+        "payment_method_type": "",
+        "payment_method": "",
+        "donor_name": "",
+    }
+
+    def _fill_ctx_from_order(o: Order):
+        try:
+            if not o:
+                return
+            ctx["amount"] = getattr(o, "amount", None)
+            ctx["currency"] = getattr(o, "currency", None)
+            ctx["customer_email"] = getattr(o, "customer_email", "") or ""
+            ctx["customer_phone"] = getattr(o, "customer_phone", "") or ""
+            # purpose/description stored in metadata during create_session
+            meta = getattr(o, "metadata", None) or {}
+            purpose = meta.get("description") or meta.get("purpose") or ""
+            if purpose:
+                ctx["purpose"] = purpose
+            # method details if already known
+            ctx["payment_method_type"] = getattr(o, "payment_method_type", "") or ""
+            ctx["payment_method"] = getattr(o, "payment_method", "") or ""
+        except Exception:
+            pass
     
     # If customer_id missing, try to fetch from our DB by order_id
     if order_id and not customer_id:
@@ -292,6 +326,46 @@ def hdfc_return_view(request):
             if o and o.customer_id:
                 customer_id = o.customer_id
                 ctx["customer_id"] = customer_id
+            _fill_ctx_from_order(o)
+            # Try to enrich with donor name/purpose and fallback details from Donations
+            try:
+                from donations.models import Donation
+                d = (
+                    Donation.objects.filter(txn_id=_sanitize_order_id(order_id)).first() or
+                    Donation.objects.filter(order_id=getattr(o, "bank_order_id", "") or "").first()
+                )
+                if d:
+                    ctx["donor_name"] = getattr(d.donor, "name", "") or ctx.get("donor_name", "")
+                    if not ctx.get("purpose"):
+                        ctx["purpose"] = getattr(d, "purpose", "") or ctx.get("purpose", "")
+                    # Fallbacks if Order wasn't found or lacks info
+                    if ctx.get("amount") is None:
+                        try:
+                            ctx["amount"] = d.amount
+                        except Exception:
+                            pass
+                    if not ctx.get("currency"):
+                        ctx["currency"] = ctx.get("currency") or "INR"
+                    if not ctx.get("customer_email"):
+                        try:
+                            ctx["customer_email"] = getattr(d.donor, "email", "") or ""
+                        except Exception:
+                            pass
+                    if not ctx.get("customer_phone"):
+                        try:
+                            ctx["customer_phone"] = getattr(d.donor, "phone_e164", "") or ""
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    # Even if customer_id already present (e.g., via cookie), pre-fill details from Order for better UX
+    if order_id:
+        try:
+            _o = Order.objects.filter(order_id=_sanitize_order_id(order_id)).first()
+            _fill_ctx_from_order(_o)
         except Exception:
             pass
         
@@ -329,6 +403,39 @@ def hdfc_return_view(request):
                 order.auth_type = data.get("auth_type", order.auth_type or "")
                 order.last_status_payload = data
                 order.save()
+                # Update context from saved order and gateway response
+                _fill_ctx_from_order(order)
+                # Enrich again from Donations if available (and fill missing fields)
+                try:
+                    from donations.models import Donation
+                    d2 = (
+                        Donation.objects.filter(txn_id=_sanitize_order_id(order_id)).first() or
+                        Donation.objects.filter(order_id=data.get("id") or "").first() or
+                        Donation.objects.filter(txn_id=data.get("txn_id") or "").first()
+                    )
+                    if d2:
+                        ctx["donor_name"] = getattr(d2.donor, "name", "") or ctx.get("donor_name", "")
+                        if not ctx.get("purpose"):
+                            ctx["purpose"] = getattr(d2, "purpose", "") or ctx.get("purpose", "")
+                        if ctx.get("amount") is None:
+                            try:
+                                ctx["amount"] = d2.amount
+                            except Exception:
+                                pass
+                        if not ctx.get("currency"):
+                            ctx["currency"] = ctx.get("currency") or "INR"
+                        if not ctx.get("customer_email"):
+                            try:
+                                ctx["customer_email"] = getattr(d2.donor, "email", "") or ""
+                            except Exception:
+                                pass
+                        if not ctx.get("customer_phone"):
+                            try:
+                                ctx["customer_phone"] = getattr(d2.donor, "phone_e164", "") or ""
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
             except Exception:
                 pass
 

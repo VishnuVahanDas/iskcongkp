@@ -1,78 +1,270 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#">
 <head>
-  <meta charset="utf-8" />
-  <title>Payment Status</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% include 'head.html' %}
+  <title>Payment Status | ISKCON Gorakhpur</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; }
-    .card { max-width: 720px; margin: auto; padding: 1.25rem; border: 1px solid #ddd; border-radius: 12px; }
-    .row { margin: .5rem 0; }
-    input, button { padding: .5rem .75rem; }
-    pre { background: #fafafa; padding: .75rem; border-radius: 8px; overflow:auto;}
+    .status-card { max-width: 760px; margin: 0 auto; }
   </style>
-</head>
-<body>
-  <div class="card">
-    <div class="row" style="display:flex; justify-content: space-between; align-items:center; gap:.5rem;">
-      <h2 style="margin:0;">Thank you. Verifying your payment…</h2>
-      <a href="{% url 'homepage:homepage' %}" style="text-decoration:none; padding:.5rem .75rem; border:1px solid #222; border-radius:8px; color:#fff; background:#222;">Go to Homepage</a>
-    </div>
-    <div id="auto-note" class="row">If we can find your last order from cookies, we’ll check it automatically.</div>
-
-    <div class="row"><label>Order ID: <input id="orderId" /></label></div>
-    <div class="row"><label>Customer ID: <input id="customerId" /></label></div>
-    <div class="row"><button id="checkBtn">Check Status</button></div>
-
-    <div class="row" id="result"></div>
-    <pre id="raw" hidden></pre>
-  </div>
-
-  <div class="card" style="margin-top:1rem;">
-    <h3>Get your donor account</h3>
-    <p class="muted">We’ll email you a magic link to access your donation history later. Optional, passwordless.</p>
-    <form method="post" action="{% url 'donations:magic_request' %}">
-      {% csrf_token %}
-      <div class="row"><label>Email</label><input name="email" id="claimEmail" type="email" placeholder="you@example.com" required></div>
-      <div class="row"><label></label><button class="btn" type="submit">Send magic link</button></div>
-    </form>
-  </div>
-
-  <script>
-    const ctxOrder = "{{ order_id|default_if_none:'' }}";
-    const ctxCustomer = "{{ customer_id|default_if_none:'' }}";
-    function readCookie(name) {
-      const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return m ? decodeURIComponent(m[2]) : '';
-    }
-    const cid = ctxCustomer || readCookie('hdfc_customer_id');
-    const oid = ctxOrder || readCookie('hdfc_last_order_id');
-    if (cid) document.getElementById('customerId').value = cid;
-    if (oid) document.getElementById('orderId').value = oid;
-
-    async function check(orderId, customerId) {
-      const resEl = document.getElementById('result');
-      const rawEl = document.getElementById('raw');
-      resEl.textContent = 'Checking…'; rawEl.hidden = true;
-      try {
-        const resp = await fetch(`/payments/status/${encodeURIComponent(orderId)}?customer_id=${encodeURIComponent(customerId)}`);
-        const data = await resp.json();
-        if (data.ok) {
-          const paid = String(data.data?.status || '').toUpperCase() === 'CHARGED';
-          resEl.textContent = `Order ${orderId}: ${paid ? '✅ CHARGED (PAID)' : '❓ ' + (data.data?.status || 'UNKNOWN')}`;
-          rawEl.textContent = JSON.stringify(data, null, 2); rawEl.hidden = false;
-        } else {
-          resEl.textContent = 'Error: ' + (data.error || 'Unknown');
-        }
-      } catch (e) { resEl.textContent = 'Network error: ' + e.message; }
-    }
-    document.getElementById('checkBtn').addEventListener('click', () => {
-      const orderId = document.getElementById('orderId').value.trim();
-      const customerId = document.getElementById('customerId').value.trim();
-      if (!orderId || !customerId) { alert('Enter Order ID and Customer ID'); return; }
-      check(orderId, customerId);
+  <meta name="robots" content="noindex" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script defer src="https://kit.fontawesome.com/a2d9d5.js" crossorigin="anonymous"></script>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', function(){
+      const wrap = document.getElementById('status-wrapper');
+      if (!wrap) return;
+      // If server didn't check, show a soft loader text
+      {% if not server_checked %}
+        wrap.querySelector('[data-status-head]').textContent = 'Verifying your payment…';
+        wrap.querySelector('[data-status-sub]').textContent = 'Please wait a moment while we confirm with the bank.';
+      {% endif %}
     });
-    if (cid && oid) check(oid, cid);
+  </script>
+  <style>
+    .status-icon { font-size: 2rem; margin-right: .5rem; }
+  </style>
+  
+</head>
+<body class="layout-no-sidebars">
+  <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+  <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+    <div id="page-wrapper"><div id="page">
+      {% include 'navbar.html' %}
+      <div class="highlighted"><aside class="container section clearfix" role="complementary"><div data-drupal-messages-fallback class="hidden"></div></aside></div>
+
+      <div id="main-wrapper" class="layout-main-wrapper clearfix">
+        <div id="main" class="container">
+          <div class="row row-offcanvas row-offcanvas-left clearfix">
+            <main class="main-content col" id="content" role="main">
+              <section class="section">
+                <a href="#main-content" id="main-content" tabindex="-1"></a>
+                <div id="block-akara-page-title" class="block block-core block-page-title-block">
+                  <div class="content">
+                    <h1 class="title"><span class="field field--name-title field--type-string field--label-hidden">Payment Status</span></h1>
+                  </div>
+                </div>
+
+                <div id="block-akara-content" class="block block-system block-system-main-block">
+                  <div class="content">
+                    <article role="article" class="node node--type-page node--view-mode-full clearfix">
+                      <div class="node__content clearfix">
+                        <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item">
+                          <div class="status-card card p-4">
+                            <div id="status-wrapper">
+                              {% if server_checked and is_paid %}
+                                <h2 class="h3 d-flex align-items-center text-success mb-2">
+                                  <span class="status-icon">✅</span> Payment Successful
+                                </h2>
+                                <p class="mb-3">Thank you for your support. Your payment has been received. If you provided an email, a receipt will arrive shortly.</p>
+                                <div class="d-flex gap-2">
+                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+                                  {% if user.is_authenticated %}
+                                    <a class="btn btn-outline-primary" href="{% url 'payments:my_payments' %}">My Payments</a>
+                                  {% endif %}
+                                </div>
+                              {% elif server_checked and status in 'PENDING AUTHORIZED INITIATED IN_PROGRESS PROCESSING' %}
+                                <h2 class="h3 d-flex align-items-center text-warning mb-2">
+                                  <span class="status-icon">⏳</span> Payment Pending
+                                </h2>
+                                <p class="mb-3">Your payment is being processed by the bank. This can take a few minutes. If the amount was deducted, it should complete automatically. You can revisit this page shortly.</p>
+                                <div class="d-flex gap-2">
+                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+                                  <a class="btn btn-outline-secondary" href="/contact">Contact Us</a>
+                                </div>
+                              {% elif server_checked %}
+                                <h2 class="h3 d-flex align-items-center text-danger mb-2">
+                                  <span class="status-icon">❌</span> Payment Not Completed
+                                </h2>
+                                <p class="mb-3">We could not confirm a successful payment. If money was deducted, it may be reversed by your bank automatically. You may try again.</p>
+                                <div class="d-flex gap-2">
+                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+                                  <a class="btn btn-outline-primary" href="{% url 'donations:shastra_daan' %}">Donate Again</a>
+                                </div>
+                              {% else %}
+                                <h2 class="h3 mb-2" data-status-head>Verifying your payment…</h2>
+                                <p class="mb-3" data-status-sub>We are confirming your payment with the bank. This usually takes a few seconds.</p>
+                                <div class="d-flex gap-2">
+                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+                                </div>
+                              {% endif %}
+                            </div>
+
+                            {% if order_id %}
+                              <div class="mt-4">
+                                <h3 class="h5 mb-3">Payment Details</h3>
+                                <div class="row g-2">
+                                  {% if donor_name %}
+                                    <div class="col-12 col-md-6">
+                                      <div class="border rounded p-2 h-100">
+                                        <div class="text-muted small">Name</div>
+                                        <div class="fw-semibold">{{ donor_name }}</div>
+                                      </div>
+                                    </div>
+                                  {% endif %}
+                                  {% if amount %}
+                                    <div class="col-12 col-md-6">
+                                      <div class="border rounded p-2 h-100">
+                                        <div class="text-muted small">Amount</div>
+                                        <div class="fw-semibold">{{ currency|default:'INR' }} {{ amount }}</div>
+                                      </div>
+                                    </div>
+                                  {% endif %}
+                                  {% if purpose %}
+                                    <div class="col-12 col-md-6">
+                                      <div class="border rounded p-2 h-100">
+                                        <div class="text-muted small">Purpose</div>
+                                        <div class="fw-semibold">{{ purpose }}</div>
+                                      </div>
+                                    </div>
+                                  {% endif %}
+                                  {% if customer_email %}
+                                    <div class="col-12 col-md-6">
+                                      <div class="border rounded p-2 h-100">
+                                        <div class="text-muted small">Email</div>
+                                        <div class="fw-semibold">{{ customer_email }}</div>
+                                      </div>
+                                    </div>
+                                  {% endif %}
+                                  {% if customer_phone %}
+                                    <div class="col-12 col-md-6">
+                                      <div class="border rounded p-2 h-100">
+                                        <div class="text-muted small">Mobile</div>
+                                        <div class="fw-semibold">{{ customer_phone }}</div>
+                                      </div>
+                                    </div>
+                                  {% endif %}
+                                  {% if payment_method or payment_method_type %}
+                                    <div class="col-12 col-md-6">
+                                      <div class="border rounded p-2 h-100">
+                                        <div class="text-muted small">Payment Method</div>
+                                        <div class="fw-semibold">{{ payment_method|default:payment_method_type }}</div>
+                                      </div>
+                                    </div>
+                                  {% endif %}
+                                  <div class="col-12">
+                                    <div class="border rounded p-2 h-100">
+                                      <div class="text-muted small">Order ID</div>
+                                      <div class="fw-semibold">{{ order_id }}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            {% endif %}
+
+                            {% if is_paid %}
+                              <hr class="my-4" />
+                              <h3 class="h5">Get your donor account</h3>
+                              <p class="text-muted">We can email you a magic link to access your donation history later. No password needed.</p>
+                              <form method="post" action="{% url 'donations:magic_request' %}" class="row g-2">
+                                {% csrf_token %}
+                                <div class="col-12 col-md-8">
+                                  <label for="claimEmail" class="form-label">Email</label>
+                                  <input name="email" id="claimEmail" type="email" class="form-control" placeholder="you@example.com" required>
+                                </div>
+                                <div class="col-12 col-md-4 d-flex align-items-end">
+                                  <button class="btn btn-success w-100" type="submit">Send magic link</button>
+                                </div>
+                              </form>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </section>
+            </main>
+          </div>
+        </div>
+      </div>
+
+      {% include 'footer.html' %}
+    </div></div>
+  </div>
+  {% include 'body_script.html' %}
+  <script>
+    // Auto-refresh if payment is pending to improve UX when server has already checked
+    {% if server_checked and not is_paid and status and status in 'PENDING AUTHORIZED INITIATED IN_PROGRESS PROCESSING' %}
+      setTimeout(function(){ window.location.reload(); }, 12000); // 12s
+    {% endif %}
+
+    // Lightweight client-side verification if server didn't check yet
+    (function(){
+      const isServerChecked = {{ server_checked|yesno:'true,false' }};
+      if (isServerChecked) return;
+
+      function readCookie(name){
+        const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return m ? decodeURIComponent(m[2]) : '';
+      }
+      const oid = ("{{ order_id|default_if_none:'' }}" || '').trim() || readCookie('hdfc_last_order_id');
+      const cid = ("{{ customer_id|default_if_none:'' }}" || '').trim() || readCookie('hdfc_customer_id');
+      const wrapper = document.getElementById('status-wrapper');
+      if (!wrapper) return;
+
+      function renderPaid(){
+        wrapper.innerHTML = `
+          <h2 class="h3 d-flex align-items-center text-success mb-2">
+            <span class="status-icon">✅</span> Payment Successful
+          </h2>
+          <p class="mb-3">Thank you for your support. Your payment has been received. If you provided an email, a receipt will arrive shortly.</p>
+          <div class="d-flex gap-2">
+            <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+            ${ {{ user.is_authenticated|yesno:'true,false' }} ? `<a class=\"btn btn-outline-primary\" href=\"{% url 'payments:my_payments' %}\">My Payments</a>` : '' }
+          </div>`;
+      }
+      function renderPending(){
+        wrapper.innerHTML = `
+          <h2 class="h3 d-flex align-items-center text-warning mb-2">
+            <span class="status-icon">⏳</span> Payment Pending
+          </h2>
+          <p class="mb-3">Your payment is being processed by the bank. This can take a few minutes. If the amount was deducted, it should complete automatically. This page will refresh shortly.</p>
+          <div class="d-flex gap-2">
+            <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+            <a class="btn btn-outline-secondary" href="/contact">Contact Us</a>
+          </div>`;
+        setTimeout(function(){ window.location.reload(); }, 12000);
+      }
+      function renderFailed(){
+        wrapper.innerHTML = `
+          <h2 class="h3 d-flex align-items-center text-danger mb-2">
+            <span class="status-icon">❌</span> Payment Not Completed
+          </h2>
+          <p class="mb-3">We could not confirm a successful payment. If money was deducted, it may be reversed by your bank automatically. You may try again.</p>
+          <div class="d-flex gap-2">
+            <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+            <a class="btn btn-outline-primary" href="{% url 'donations:shastra_daan' %}">Donate Again</a>
+          </div>`;
+      }
+      function renderUnknown(){
+        wrapper.innerHTML = `
+          <h2 class="h3 mb-2">Verifying your payment…</h2>
+          <p class="mb-3">We are confirming your payment with the bank. This usually takes a few seconds.</p>
+          <div class="d-flex gap-2">
+            <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+          </div>`;
+      }
+
+      async function check(){
+        if (!oid || !cid) { renderUnknown(); return; }
+        try {
+          const resp = await fetch(`/payments/status/${encodeURIComponent(oid)}?customer_id=${encodeURIComponent(cid)}`);
+          const data = await resp.json();
+          if (!data || !data.ok) { renderUnknown(); return; }
+          const rawStatus = String((data.data && (data.data.status || (data.data.order||{}).status || (data.data.payment||{}).status || (data.data.transaction||{}).status)) || '').toUpperCase();
+          const success = new Set(['CHARGED','SUCCESS','SUCCESSFUL','PAID','CAPTURED','COMPLETED','SETTLED']).has(rawStatus);
+          const pending = ['PENDING','AUTHORIZED','INITIATED','IN_PROGRESS','PROCESSING'].some(s=>rawStatus.includes(s));
+          if (success) return renderPaid();
+          if (pending) return renderPending();
+          return renderFailed();
+        } catch(e) {
+          renderUnknown();
+        }
+      }
+
+      check();
+    })();
   </script>
 </body>
 </html>
