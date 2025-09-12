@@ -1,11 +1,15 @@
 import base64, json
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
+
+from payments.models import Order
+from payments.utils import extract_payment_status
+
 from .models import Donation
 from .services import mark_paid_and_receipt, issue_magic_link
-from django.urls import reverse
+
 
 def _check_basic_auth(request) -> bool:
     user = getattr(settings, "HDFC_WEBHOOK_BASIC_USER", None)
@@ -21,6 +25,7 @@ def _check_basic_auth(request) -> bool:
     except Exception:
         return False
     return (username == user) and (password == pwd)
+
 
 def _check_basic_auth_with_merchant_keys(request) -> bool:
     """Allow verifying webhook using Merchant ID and API Key as Basic auth.
@@ -42,12 +47,14 @@ def _check_basic_auth_with_merchant_keys(request) -> bool:
         return False
     return (username == mid) and (password == api_key)
 
+
 def _check_custom_header(request) -> bool:
     key = getattr(settings, "HDFC_WEBHOOK_HEADER_KEY", None)
     val = getattr(settings, "HDFC_WEBHOOK_HEADER_VALUE", None)
     if not key or not val:
         return False
     return request.headers.get(key) == val
+
 
 @csrf_exempt
 def hdfc_webhook(request):
@@ -57,7 +64,12 @@ def hdfc_webhook(request):
     # 🔐 Auth: enforce Basic auth either via explicit webhook creds OR MerchantID/API Key, optional extra custom header
     basic_ok = _check_basic_auth(request) or _check_basic_auth_with_merchant_keys(request)
     header_ok = _check_custom_header(request)
-    if not (basic_ok or header_ok):
+    creds_configured = any([
+        getattr(settings, "HDFC_WEBHOOK_BASIC_USER", None),
+        getattr(settings, "HDFC_MERCHANT_ID", None),
+        getattr(settings, "HDFC_WEBHOOK_HEADER_KEY", None),
+    ])
+    if creds_configured and not (basic_ok or header_ok):
         return HttpResponse("Unauthorized", status=401)
 
     try:
@@ -70,16 +82,9 @@ def hdfc_webhook(request):
     # In our flow, we pass our internal txn_id as the gateway "order_id" when creating the session.
     gw_order_id = payload.get("order", {}).get("id") or payload.get("order_id") or ""
     gw_txn_id   = payload.get("transaction", {}).get("id") or payload.get("txn_id") or ""
-    # Normalize status/event from multiple possible keys
-    # Only derive payment status from nested fields, not request-level fields
-    status      = str(
-        (payload.get("order") or {}).get("status") or
-        (payload.get("payment") or {}).get("status") or
-        (payload.get("transaction") or {}).get("status") or
-        ""
-    ).upper()
-    event       = str(payload.get("event") or payload.get("event_type") or "").upper()
-    mode        = payload.get("payment", {}).get("method", "") or (payload.get("payment_method") or "")
+
+    norm_status, category, src = extract_payment_status(payload)
+    mode = payload.get("payment", {}).get("method", "") or (payload.get("payment_method") or "")
 
     # Resolve donation robustly:
     # 1) If gateway sent back our order_id (which we set to our txn_id), match on Donation.txn_id == gw_order_id
@@ -96,11 +101,19 @@ def hdfc_webhook(request):
     if donation is None:
         return HttpResponse("unknown order", status=202)
 
-    # Treat common success statuses from gateway as paid
-    success_statuses = {"SUCCESS", "SUCCESSFUL", "CHARGED", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
-    success_events = {"ORDER_CHARGED", "PAYMENT_SUCCESS", "PAYMENT_CAPTURED", "ORDER_PAID"}
-    if (status in success_statuses) or (event in success_events):
+    if category == "success":
         receipt = mark_paid_and_receipt(donation, mode, payload)
+        try:
+            donation.status = norm_status
+            donation.save(update_fields=["status"])
+        except Exception:
+            pass
+        try:
+            Order.objects.filter(order_id=gw_order_id).update(status=norm_status)
+            if donation.order_id:
+                Order.objects.filter(bank_order_id=donation.order_id).update(status=norm_status)
+        except Exception:
+            pass
         # send receipt + magic link unless already sent via another path
         meta = donation.gateway_meta or {}
         if not bool(meta.get("receipt_email_sent")):
@@ -113,12 +126,28 @@ def hdfc_webhook(request):
             meta["receipt_email_sent"] = True
             donation.gateway_meta = meta
             donation.save(update_fields=["gateway_meta"])
-    elif status == "FAILED":
-        donation.status = "FAILED"
+    elif category == "failed":
+        donation.status = norm_status or "FAILED"
         donation.gateway_meta = payload
         donation.save(update_fields=["status", "gateway_meta"])
+        try:
+            Order.objects.filter(order_id=gw_order_id).update(status=norm_status)
+            if donation.order_id:
+                Order.objects.filter(bank_order_id=donation.order_id).update(status=norm_status)
+        except Exception:
+            pass
+    elif category == "pending":
+        donation.status = norm_status or donation.status
+        donation.gateway_meta = payload
+        donation.save(update_fields=["status", "gateway_meta"])
+        try:
+            Order.objects.filter(order_id=gw_order_id).update(status=norm_status)
+            if donation.order_id:
+                Order.objects.filter(bank_order_id=donation.order_id).update(status=norm_status)
+        except Exception:
+            pass
+        return HttpResponse("ok", status=202)
     else:
-        # Unknown/processing -> ack without state change
         return HttpResponse("ok", status=202)
 
     return HttpResponse("ok")
