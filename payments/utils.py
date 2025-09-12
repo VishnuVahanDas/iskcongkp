@@ -91,3 +91,72 @@ def verify_session_signature(payload: dict, sig_hex: str, ts: int, ttl_seconds: 
 def track_id_for(order_id: str, ts: int) -> str:
     base = f"{_sanitize_order_id(order_id)}|{int(ts)}".encode("utf-8")
     return hashlib.sha256(base).hexdigest()[:32]
+
+
+# --- Status normalization ---
+
+SUCCESS_STATUSES = {"CHARGED", "SUCCESS", "SUCCESSFUL", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
+PENDING_STATUSES = {"PENDING", "AUTHORIZED", "INITIATED", "IN_PROGRESS", "PROCESSING", "CREATED"}
+FAILED_STATUSES  = {"FAILED", "DECLINED", "CANCELLED", "CANCELED", "VOID"}
+
+# Optional fallbacks, can be toggled via env but our extractor will safely
+# fall back to root/result only if nested fields are missing
+ALLOW_ROOT_STATUS   = (os.getenv("HDFC_STATUS_FALLBACK_ROOT", "true").lower() in ("1","true","yes"))
+ALLOW_RESULT_STATUS = (os.getenv("HDFC_STATUS_FALLBACK_RESULT", "true").lower() in ("1","true","yes"))
+
+def extract_payment_status(payload: dict) -> tuple[str, str, str]:
+    """Return (status, category, source).
+
+    - status: normalized uppercase status string or ''
+    - category: one of 'success' | 'pending' | 'failed' | 'unknown'
+    - source: which field path provided the status
+    """
+    d = payload or {}
+    # Try a prioritized list of nested paths
+    paths = [
+        ("order.status", ("order", "status")),
+        ("order.state", ("order", "state")),
+        ("order.current_status", ("order", "current_status")),
+        ("payment.status", ("payment", "status")),
+        ("payment.state", ("payment", "state")),
+        ("payment.current_status", ("payment", "current_status")),
+        ("transaction.status", ("transaction", "status")),
+        ("transaction.state", ("transaction", "state")),
+        ("txn_detail.status", ("txn_detail", "status")),
+    ]
+    status = ""; src = ""
+    for label, (p1, p2) in paths:
+        try:
+            if isinstance(d.get(p1), dict) and d[p1].get(p2):
+                s = str(d[p1].get(p2))
+                status = s.upper(); src = label
+                break
+        except Exception:
+            pass
+    # payments array last item
+    if not status and isinstance(d.get("payments"), list) and d["payments"]:
+        try:
+            s = str((d["payments"][-1] or {}).get("status", ""))
+            if s:
+                status = s.upper(); src = "payments[-1].status"
+        except Exception:
+            pass
+    # Safe fallbacks: only if nothing found
+    if not status and ALLOW_ROOT_STATUS and d.get("status"):
+        s = str(d.get("status"));
+        up = s.upper()
+        if up in SUCCESS_STATUSES | PENDING_STATUSES | FAILED_STATUSES:
+            status = up; src = "status"
+    if not status and ALLOW_RESULT_STATUS and isinstance(d.get("result"), dict) and d["result"].get("status"):
+        s = str(d["result"].get("status"))
+        up = s.upper()
+        if up in SUCCESS_STATUSES | PENDING_STATUSES | FAILED_STATUSES:
+            status = up; src = "result.status"
+
+    if status in SUCCESS_STATUSES:
+        return status, "success", src
+    if status in PENDING_STATUSES:
+        return status, "pending", src
+    if status in FAILED_STATUSES:
+        return status, "failed", src
+    return status, "unknown", src

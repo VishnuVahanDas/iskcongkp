@@ -161,12 +161,11 @@ def thank_you(request):
             data = result.get("data") or {}
 
             def _extract_status(d: dict) -> str:
+                # Only consider nested statuses; ignore request-level fields
                 s = (
-                    (d or {}).get("status")
-                    or (d or {}).get("order", {}).get("status")
+                    (d or {}).get("order", {}).get("status")
                     or (d or {}).get("payment", {}).get("status")
                     or (d or {}).get("transaction", {}).get("status")
-                    or (d or {}).get("result", {}).get("status")
                     or ""
                 )
                 return str(s).upper()

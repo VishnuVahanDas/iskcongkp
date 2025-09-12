@@ -71,12 +71,11 @@ def hdfc_webhook(request):
     gw_order_id = payload.get("order", {}).get("id") or payload.get("order_id") or ""
     gw_txn_id   = payload.get("transaction", {}).get("id") or payload.get("txn_id") or ""
     # Normalize status/event from multiple possible keys
+    # Only derive payment status from nested fields, not request-level fields
     status      = str(
-        payload.get("status") or
         (payload.get("order") or {}).get("status") or
         (payload.get("payment") or {}).get("status") or
         (payload.get("transaction") or {}).get("status") or
-        (payload.get("result") or {}).get("status") or
         ""
     ).upper()
     event       = str(payload.get("event") or payload.get("event_type") or "").upper()

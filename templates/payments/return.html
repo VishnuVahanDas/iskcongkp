@@ -63,7 +63,7 @@
                                     <a class="btn btn-outline-primary" href="{% url 'payments:my_payments' %}">My Payments</a>
                                   {% endif %}
                                 </div>
-                              {% elif server_checked and status in 'PENDING AUTHORIZED INITIATED IN_PROGRESS PROCESSING' %}
+                              {% elif server_checked and is_pending %}
                                 <h2 class="h3 d-flex align-items-center text-warning mb-2">
                                   <span class="status-icon">⏳</span> Payment Pending
                                 </h2>
@@ -185,7 +185,7 @@
   {% include 'body_script.html' %}
   <script>
     // Auto-refresh if payment is pending to improve UX when server has already checked
-    {% if server_checked and not is_paid and status and status in 'PENDING AUTHORIZED INITIATED IN_PROGRESS PROCESSING' %}
+    {% if server_checked and not is_paid and is_pending %}
       setTimeout(function(){ window.location.reload(); }, 12000); // 12s
     {% endif %}
 
@@ -252,7 +252,8 @@
           const resp = await fetch(`/payments/status/${encodeURIComponent(oid)}?customer_id=${encodeURIComponent(cid)}`);
           const data = await resp.json();
           if (!data || !data.ok) { renderUnknown(); return; }
-          const rawStatus = String((data.data && (data.data.status || (data.data.order||{}).status || (data.data.payment||{}).status || (data.data.transaction||{}).status)) || '').toUpperCase();
+          // Only consider nested payment/order/transaction statuses; ignore request-level/root status
+          const rawStatus = String((data.data && ((data.data.order||{}).status || (data.data.payment||{}).status || (data.data.transaction||{}).status)) || '').toUpperCase();
           const success = new Set(['CHARGED','SUCCESS','SUCCESSFUL','PAID','CAPTURED','COMPLETED','SETTLED']).has(rawStatus);
           const pending = ['PENDING','AUTHORIZED','INITIATED','IN_PROGRESS','PROCESSING'].some(s=>rawStatus.includes(s));
           if (success) return renderPaid();
@@ -268,3 +269,19 @@
   </script>
 </body>
 </html>
+                            {% if server_checked %}
+                              <hr class="my-4">
+                              <h3 class="h5 mb-3">Payment Details</h3>
+                              <div class="table-responsive">
+                                <table class="table table-sm">
+                                  <tbody>
+                                    <tr><th scope="row">Order ID</th><td>{{ order_id }}</td></tr>
+                                    <tr><th scope="row">Amount</th><td>{% if amount %}{{ currency|default:'INR' }} {{ amount }}{% else %}-{% endif %}</td></tr>
+                                    <tr><th scope="row">Purpose</th><td>{{ purpose|default:'Donation' }}</td></tr>
+                                    <tr><th scope="row">Name</th><td>{{ donor_name|default:'-' }}</td></tr>
+                                    <tr><th scope="row">Email</th><td>{{ customer_email|default:'-' }}</td></tr>
+                                    <tr><th scope="row">Contact</th><td>{{ customer_phone|default:'-' }}</td></tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            {% endif %}

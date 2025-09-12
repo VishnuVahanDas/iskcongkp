@@ -14,6 +14,7 @@ from .models import Order
 from .utils import generate_order_id
 from .utils import allowed_payment_redirect
 from .utils import sign_session, verify_session_signature, track_id_for
+from .utils import extract_payment_status, SUCCESS_STATUSES, PENDING_STATUSES
 
 def _json_body(request):
     try: return json.loads(request.body.decode("utf-8"))
@@ -140,6 +141,9 @@ def hdfc_create_session_view(request):
         bank_id = data.get("id") or ""
         links = data.get("payment_links", {}) or {}
         sdk = data.get("sdk_payload", None)
+        # Derive payment status; at session creation treat as PENDING if unknown
+        norm_status, category, src = extract_payment_status(data)
+        status_to_store = norm_status if category != "unknown" else "PENDING"
         # URL redirection validation: only persist/return a known-safe link
         web_link = links.get("web") or links.get("mobile") or ""
         safe_web_link = web_link if allowed_payment_redirect(web_link) else ""
@@ -148,7 +152,7 @@ def hdfc_create_session_view(request):
             order_id=oid,
             defaults={
                 "bank_order_id": bank_id,
-                "status": str(data.get("status", "NEW")),
+                "status": status_to_store,
                 "amount": body["amount"],
                 "currency": body.get("currency", "INR"),
                 "customer_id": body["customer_id"],
@@ -157,7 +161,13 @@ def hdfc_create_session_view(request):
                 "payment_links_web": safe_web_link,
                 "sdk_payload": sdk,
                 # persist description in metadata so receipts include purpose
-                "metadata": {"payment_links": links, "description": body.get("description", "Donation")},
+                "metadata": {
+                    "payment_links": links,
+                    "description": body.get("description", "Donation"),
+                    "first_name": body.get("first_name", ""),
+                    "last_name": body.get("last_name", ""),
+                    "status_source": src or "",
+                },
             },
         )
 
@@ -216,26 +226,31 @@ def hdfc_sign_session_view(request):
 
 @require_GET
 def hdfc_order_status_view(request, order_id: str):
+    raw_oid = order_id
     oid = _sanitize_order_id(order_id)
     customer_id = request.GET.get("customer_id", "")
     if not customer_id:
         return HttpResponseBadRequest("customer_id is required")
 
     def _extract_status(data: dict) -> str:
-        # Normalize status from various possible keys/locations
-        if not isinstance(data, dict):
-            return ""
-        s = (data.get("status") or
-             (data.get("order") or {}).get("status") or
-             (data.get("payment") or {}).get("status") or
-             (data.get("transaction") or {}).get("status") or
-             (data.get("result") or {}).get("status") or
-             "")
-        return str(s).upper()
+        s, _, _ = extract_payment_status(data)
+        return s
 
+    # If not found by our internal id, map bank_order_id -> our order_id
     try:
+        try:
+            _o = Order.objects.filter(order_id=oid).first()
+            if not _o:
+                _o = Order.objects.filter(bank_order_id=raw_oid).first()
+            if _o:
+                oid = _o.order_id
+        except Exception:
+            pass
         result = get_order_status(oid, customer_id)
         data = result["data"]
+
+        # Normalize payment status
+        norm_status, category, src = extract_payment_status(data)
 
         # persist
         try:
@@ -244,7 +259,7 @@ def hdfc_order_status_view(request, order_id: str):
             order = None
 
         if order:
-            order.status = str(data.get("status", order.status or ""))
+            order.status = norm_status or (order.status or "")
             order.bank_order_id = data.get("id", order.bank_order_id or "")
             order.txn_id = data.get("txn_id", order.txn_id or "")
             order.payment_method_type = data.get("payment_method_type", order.payment_method_type or "")
@@ -268,12 +283,13 @@ def hdfc_order_status_view(request, order_id: str):
             meta = order.metadata or {}
             if (data.get("description") and not meta.get("description")):
                 meta["description"] = data.get("description")
+            if src:
+                meta["status_source"] = src
             order.metadata = meta
             order.save()
 
-        norm_status = _extract_status(data)
-        success_statuses = {"CHARGED", "SUCCESS", "SUCCESSFUL", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
-        paid = norm_status in success_statuses
+        # norm_status already computed above
+        paid = norm_status in SUCCESS_STATUSES
         result["is_paid"] = paid
 
         # Send confirmation emails once per paid order using a row-level lock to avoid duplicates
@@ -357,6 +373,38 @@ def hdfc_return_view(request):
         except Exception:
             customer_id = ""
 
+    # Try to map gateway's bank_order_id to our internal order_id (txn_id) and fill customer_id
+    # so that subsequent status fetch uses the correct identifier expected by HDFC
+    try:
+        # First, resolve via payments.Order
+        o_map = (
+            Order.objects.filter(order_id=_sanitize_order_id(order_id)).first()
+            if order_id else None
+        )
+        if not o_map and order_id:
+            o_map = Order.objects.filter(bank_order_id=order_id).first()
+        if o_map:
+            if not customer_id:
+                customer_id = o_map.customer_id
+            # Ensure we use our internal order id (<=20 alnum) for HDFC status API
+            order_id = o_map.order_id
+        elif order_id:
+            # Next, try donations mapping: bank order id -> donation.txn_id
+            try:
+                from donations.models import Donation
+                d_map = (
+                    Donation.objects.filter(order_id=order_id).select_related("donor").first()
+                    or Donation.objects.filter(txn_id=_sanitize_order_id(order_id)).select_related("donor").first()
+                )
+                if d_map:
+                    if not customer_id and d_map.donor:
+                        customer_id = d_map.donor.email or d_map.donor.phone_e164 or f"donor-{d_map.donor.id}"
+                    order_id = d_map.txn_id  # use our txn id for status calls
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     # Default context
     ctx = {
         "order_id": order_id,
@@ -388,6 +436,13 @@ def hdfc_return_view(request):
             purpose = meta.get("description") or meta.get("purpose") or ""
             if purpose:
                 ctx["purpose"] = purpose
+            # Name: prefer donation name later, else use stored first/last from metadata
+            if not ctx.get("donor_name"):
+                fn = (meta.get("first_name") or "").strip()
+                ln = (meta.get("last_name") or "").strip()
+                name = (f"{fn} {ln}").strip()
+                if name:
+                    ctx["donor_name"] = name
             # method details if already known
             ctx["payment_method_type"] = getattr(o, "payment_method_type", "") or ""
             ctx["payment_method"] = getattr(o, "payment_method", "") or ""
@@ -452,25 +507,17 @@ def hdfc_return_view(request):
 
             # Normalize success state
             def _extract_status(d: dict) -> str:
-                s = (
-                    (d or {}).get("status")
-                    or (d or {}).get("order", {}).get("status")
-                    or (d or {}).get("payment", {}).get("status")
-                    or (d or {}).get("transaction", {}).get("status")
-                    or (d or {}).get("result", {}).get("status")
-                    or ""
-                )
-                return str(s).upper()
+                s, _, _ = extract_payment_status(d)
+                return s
 
-            norm_status = _extract_status(data)
-            success_statuses = {"CHARGED", "SUCCESS", "SUCCESSFUL", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
-            paid = norm_status in success_statuses
-            ctx.update({"server_checked": True, "is_paid": paid, "status": norm_status})
+            norm_status, category, src = extract_payment_status(data)
+            paid = norm_status in SUCCESS_STATUSES
+            is_pending = (norm_status in PENDING_STATUSES)
 
             # Persist to payments.Order table
             try:
                 order = Order.objects.get(order_id=_sanitize_order_id(order_id))
-                order.status = str(data.get("status", order.status or ""))
+                order.status = norm_status or (order.status or "")
                 order.bank_order_id = data.get("id", order.bank_order_id or "")
                 order.txn_id = data.get("txn_id", order.txn_id or "")
                 order.payment_method_type = data.get("payment_method_type", order.payment_method_type or "")
@@ -480,6 +527,23 @@ def hdfc_return_view(request):
                 order.save()
                 # Update context from saved order and gateway response
                 _fill_ctx_from_order(order)
+                # Prefer DB status as the source of truth for UI
+                paid_db = bool(getattr(order, "is_paid", False))
+                ctx.update({
+                    "server_checked": True,
+                    "is_paid": paid_db,
+                    "status": str(getattr(order, "status", norm_status or "")).upper(),
+                    "is_pending": (str(getattr(order, "status", "")).upper() in PENDING_STATUSES) or is_pending,
+                })
+                # Mark where we obtained status
+                try:
+                    if src:
+                        meta = order.metadata or {}
+                        meta["status_source"] = src
+                        order.metadata = meta
+                        order.save(update_fields=["metadata"])
+                except Exception:
+                    pass
                 # Enrich again from Donations if available (and fill missing fields)
                 try:
                     from donations.models import Donation
@@ -513,6 +577,35 @@ def hdfc_return_view(request):
                     pass
             except Exception:
                 pass
+
+            # Send confirmation emails once per paid order using a row-level lock to avoid duplicates
+            if paid:
+                try:
+                    from django.db import transaction
+                    # Fetch order row (if not already)
+                    _ord = None
+                    try:
+                        _ord = Order.objects.get(order_id=_sanitize_order_id(order_id))
+                    except Exception:
+                        _ord = None
+                    if _ord:
+                        should_send = False
+                        with transaction.atomic():
+                            locked = Order.objects.select_for_update().get(pk=_ord.pk)
+                            meta = locked.metadata or {}
+                            if not bool(meta.get("receipt_sent")):
+                                meta["receipt_sent"] = True
+                                locked.metadata = meta
+                                locked.save(update_fields=["metadata"])
+                                should_send = True
+                        if should_send:
+                            try:
+                                from django.db import transaction as _tx
+                                _tx.on_commit(lambda: send_payment_confirmation(order=_ord))
+                            except Exception:
+                                send_payment_confirmation(order=_ord)
+                except Exception:
+                    pass
 
             # Reconcile Donations app if paid
             if paid:
