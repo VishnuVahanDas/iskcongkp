@@ -18,7 +18,8 @@ from payments.integrations.hdfc import (
     HdfcError,
     get_order_status,
 )
-from payments.utils import allowed_payment_redirect
+from payments.utils import allowed_payment_redirect, extract_payment_status
+from payments.models import Order
 from django.utils import timezone
 
 
@@ -160,26 +161,27 @@ def thank_you(request):
             result = get_order_status(txn_id, customer_id)
             data = result.get("data") or {}
 
-            def _extract_status(d: dict) -> str:
-                # Only consider nested statuses; ignore request-level fields
-                s = (
-                    (d or {}).get("order", {}).get("status")
-                    or (d or {}).get("payment", {}).get("status")
-                    or (d or {}).get("transaction", {}).get("status")
-                    or ""
-                )
-                return str(s).upper()
-
-            norm_status = _extract_status(data)
-            success_statuses = {"CHARGED", "SUCCESS", "SUCCESSFUL", "PAID", "CAPTURED", "COMPLETED", "SETTLED"}
-            is_paid = norm_status in success_statuses
+            norm_status, category, src = extract_payment_status(data)
+            is_paid = category == "success"
 
             ctx.update({"status": norm_status, "is_paid": is_paid, "server_checked": True})
 
-            if is_paid and donation and donation.status != "SUCCESS":
-                mode = data.get("payment_method") or data.get("payment_method_type") or ""
+            if is_paid and donation:
+                if donation.status != "SUCCESS":
+                    mode = data.get("payment_method") or data.get("payment_method_type") or ""
+                    try:
+                        mark_paid_and_receipt(donation, mode, data)
+                    except Exception:
+                        pass
                 try:
-                    mark_paid_and_receipt(donation, mode, data)
+                    donation.status = norm_status
+                    donation.save(update_fields=["status"])
+                except Exception:
+                    pass
+                try:
+                    Order.objects.filter(order_id=txn_id).update(status=norm_status)
+                    if donation.order_id:
+                        Order.objects.filter(bank_order_id=donation.order_id).update(status=norm_status)
                 except Exception:
                     pass
         except HdfcError:
