@@ -12,6 +12,7 @@ from django.utils.crypto import get_random_string
 from .emails import send_payment_confirmation
 from .models import Order
 from .utils import generate_order_id
+from .utils import allowed_payment_redirect
 
 def _json_body(request):
     try: return json.loads(request.body.decode("utf-8"))
@@ -118,6 +119,9 @@ def hdfc_create_session_view(request):
         bank_id = data.get("id") or ""
         links = data.get("payment_links", {}) or {}
         sdk = data.get("sdk_payload", None)
+        # URL redirection validation: only persist/return a known-safe link
+        web_link = links.get("web") or links.get("mobile") or ""
+        safe_web_link = web_link if allowed_payment_redirect(web_link) else ""
 
         Order.objects.update_or_create(
             order_id=oid,
@@ -129,12 +133,20 @@ def hdfc_create_session_view(request):
                 "customer_id": body["customer_id"],
                 "customer_email": body["customer_email"],
                 "customer_phone": body["customer_phone"],
-                "payment_links_web": links.get("web", "") or links.get("mobile", "") or "",
+                "payment_links_web": safe_web_link,
                 "sdk_payload": sdk,
                 # persist description in metadata so receipts include purpose
                 "metadata": {"payment_links": links, "description": body.get("description", "Donation")},
             },
         )
+
+        # Replace link in response with safe version if original was unsafe
+        try:
+            if not safe_web_link and (result.get("data") or {}).get("payment_links"):
+                # zero out links to prevent client-side open redirect
+                result["data"]["payment_links"] = {}
+        except Exception:
+            pass
 
         resp = JsonResponse(result, status=200, safe=False)
         resp.set_cookie("hdfc_last_order_id", oid, max_age=1800, secure=True, samesite="Lax")
