@@ -54,6 +54,12 @@
       </div>
 
       <script>
+        function getCookie(name) {
+          const v = `; ${document.cookie}`;
+          const p = v.split(`; ${name}=`);
+          if (p.length === 2) return p.pop().split(';').shift();
+          return '';
+        }
         function isAllowedRedirect(u) {
           try {
             const p = new URL(u);
@@ -72,10 +78,10 @@
           return (`ORD${uid}${t}`).replace(/[^A-Za-z0-9]/g, '').slice(0,20);
         }
 
-        async function createSession(payload) {
-          const res = await fetch('/payments/create-session', {
+        async function postJson(url, payload) {
+          const res = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
             body: JSON.stringify(payload)
           });
           const ct = res.headers.get('content-type') || '';
@@ -105,7 +111,7 @@
           if (!customer_id || !customer_email || !customer_phone) { msg.className = 'err'; msg.textContent = 'Missing customer details.'; return; }
 
           document.getElementById('order_id').value = order_id;
-          const payload = {
+          let payload = {
             order_id,
             amount,
             customer_id,
@@ -122,9 +128,18 @@
           console.debug('payments/test create-session payload', payload);
 
           const btn = document.getElementById('payBtn');
-          btn.disabled = true; msg.textContent = 'Creating session…';
+          btn.disabled = true; msg.textContent = 'Preparing…';
           try {
-            const resp = await createSession(payload);
+            // Step 1: ask server to sign the payload and finalize canonical order_id
+            const signed = await postJson('/payments/sign-session', payload);
+            payload.order_id = signed.order_id; // use server order id
+            payload.signature = signed.signature;
+            payload.ts = signed.ts;
+            payload.track_id = signed.track_id;
+
+            // Step 2: create session with signature
+            msg.textContent = 'Creating session…';
+            const resp = await postJson('/payments/create-session', payload);
             const links = (resp && resp.data && resp.data.payment_links) || {};
             const url = links.web || links.mobile || '';
             if (url && isAllowedRedirect(url)) {

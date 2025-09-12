@@ -13,6 +13,7 @@ from .emails import send_payment_confirmation
 from .models import Order
 from .utils import generate_order_id
 from .utils import allowed_payment_redirect
+from .utils import sign_session, verify_session_signature, track_id_for
 
 def _json_body(request):
     try: return json.loads(request.body.decode("utf-8"))
@@ -71,7 +72,7 @@ def hdfc_create_session_view(request):
     body = _json_body(request)
     if not body:
         return HttpResponseBadRequest("Invalid JSON body")
-    required = ["amount", "customer_id", "customer_email", "customer_phone"]
+    required = ["amount", "customer_id", "customer_email", "customer_phone", "signature", "ts", "track_id"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return HttpResponseBadRequest(f"Missing fields: {', '.join(missing)}")
@@ -102,6 +103,26 @@ def hdfc_create_session_view(request):
             attempts += 1
     except Exception:
         pass
+
+    # Verify signature and track id (tamper protection)
+    try:
+        signed_subset = {
+            "order_id": raw_oid,
+            "amount": body.get("amount"),
+            "currency": body.get("currency", "INR"),
+            "customer_id": body.get("customer_id"),
+            "customer_email": body.get("customer_email"),
+            "customer_phone": body.get("customer_phone"),
+            "description": body.get("description", ""),
+        }
+        ts = int(body.get("ts"))
+        sig = str(body.get("signature"))
+        if not verify_session_signature(signed_subset, sig, ts):
+            return HttpResponseBadRequest("Invalid signature or timestamp")
+        if str(body.get("track_id")) != track_id_for(raw_oid or oid, ts):
+            return HttpResponseBadRequest("Invalid track id")
+    except Exception:
+        return HttpResponseBadRequest("Signature verification failed")
 
     try:
         result = create_session(
@@ -158,6 +179,40 @@ def hdfc_create_session_view(request):
     except Exception as e:
         # Ensure JSON error instead of HTML 500 page for the test client
         return JsonResponse({"ok": False, "error": f"Server error: {str(e)}"}, status=500, safe=False)
+
+
+@csrf_protect
+@login_required
+@require_POST
+def hdfc_sign_session_view(request):
+    body = _json_body(request)
+    if not body:
+        return HttpResponseBadRequest("Invalid JSON body")
+    # Prepare order id deterministically for signature
+    raw_oid = str(body.get("order_id", ""))
+    if not raw_oid:
+        try:
+            raw_oid = generate_order_id(prefix="ORD")
+        except Exception:
+            raw_oid = "ORD"
+    # Sign canonical subset
+    subset = {
+        "order_id": raw_oid,
+        "amount": body.get("amount"),
+        "currency": body.get("currency", "INR"),
+        "customer_id": body.get("customer_id"),
+        "customer_email": body.get("customer_email"),
+        "customer_phone": body.get("customer_phone"),
+        "description": body.get("description", ""),
+    }
+    sig, ts = sign_session(subset)
+    return JsonResponse({
+        "ok": True,
+        "order_id": raw_oid,
+        "signature": sig,
+        "ts": ts,
+        "track_id": track_id_for(raw_oid, ts),
+    })
 
 @require_GET
 def hdfc_order_status_view(request, order_id: str):
