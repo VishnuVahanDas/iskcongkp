@@ -198,6 +198,12 @@ SESSION_COOKIE_DOMAIN = ".iskcongorakhpur.com"
 CSRF_COOKIE_DOMAIN = ".iskcongorakhpur.com"
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Basic logging to surface email/send issues in console
 LOGGING = {

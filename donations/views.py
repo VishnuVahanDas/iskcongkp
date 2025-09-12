@@ -18,6 +18,7 @@ from payments.integrations.hdfc import (
     HdfcError,
     get_order_status,
 )
+from payments.utils import allowed_payment_redirect
 from django.utils import timezone
 
 
@@ -109,6 +110,9 @@ def donate_checkout(request):
     redirect_url = links.get("web") or links.get("mobile") or ""
     if not redirect_url:
         return HttpResponseBadRequest("Gateway did not return a payment link")
+    # URL redirection validation: allow only known gateway hosts over HTTPS
+    if not allowed_payment_redirect(redirect_url):
+        return HttpResponseBadRequest("Invalid redirect URL received from gateway")
 
     # --- persist donation with real order id from gateway ---
     donation = Donation.objects.create(

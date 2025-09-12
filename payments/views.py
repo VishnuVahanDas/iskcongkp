@@ -3,7 +3,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils.dateparse import parse_datetime
 from datetime import timezone
 
@@ -11,6 +11,7 @@ from .integrations.hdfc import create_session, get_order_status, HdfcError, _san
 from django.utils.crypto import get_random_string
 from .emails import send_payment_confirmation
 from .models import Order
+from .utils import generate_order_id
 
 def _json_body(request):
     try: return json.loads(request.body.decode("utf-8"))
@@ -62,19 +63,26 @@ def my_payments_view(request):
     }
     return render(request, "payments/my_payments.html", ctx)
 
-@csrf_exempt
+@csrf_protect
+@login_required
 @require_POST
 def hdfc_create_session_view(request):
     body = _json_body(request)
     if not body:
         return HttpResponseBadRequest("Invalid JSON body")
-    required = ["order_id", "amount", "customer_id", "customer_email", "customer_phone"]
+    required = ["amount", "customer_id", "customer_email", "customer_phone"]
     missing = [k for k in required if not body.get(k)]
     if missing:
         return HttpResponseBadRequest(f"Missing fields: {', '.join(missing)}")
 
     # Normalize order_id to match gateway and DB constraints (<=20 alnum)
     raw_oid = str(body.get("order_id", ""))
+    if not raw_oid:
+        # Generate a unique server-side order ID if not provided
+        try:
+            raw_oid = generate_order_id(prefix="ORD")
+        except Exception:
+            raw_oid = "ORD"
     oid = _sanitize_order_id(raw_oid)
     if not oid:
         return HttpResponseBadRequest("order_id must contain alphanumeric characters (max 20)")
