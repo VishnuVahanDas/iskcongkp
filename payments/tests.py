@@ -24,3 +24,26 @@ class PaymentStatusExtractionTests(unittest.TestCase):
         self.assertEqual(status, "CANCELED")
         self.assertEqual(category, "failed")
         self.assertEqual(source, "payment.order_status")
+
+from unittest.mock import patch
+from payments.integrations.easebuzz import _credentials, EasebuzzIntegrationError
+
+
+class EasebuzzIntegrationConfigTests(unittest.TestCase):
+    def test_credentials_require_key_and_salt(self):
+        with patch.dict("os.environ", {}, clear=False):
+            with self.assertRaises(EasebuzzIntegrationError):
+                _credentials()
+
+    def test_invalid_env_is_rejected(self):
+        with patch.dict(
+            "os.environ",
+            {
+                "EASEBUZZ_MERCHANT_KEY": "k",
+                "EASEBUZZ_SALT": "s",
+                "EASEBUZZ_ENV": "staging",
+            },
+            clear=False,
+        ):
+            with self.assertRaises(EasebuzzIntegrationError):
+                _credentials()

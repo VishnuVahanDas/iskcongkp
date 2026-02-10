@@ -80,4 +80,5 @@ Static files are served from the `assets/` directory and media uploads from `med
 
 ## Payment gateway integration
 
-For Easebuzz integration steps, see `docs/easebuzz_integration_steps.md`.
+Easebuzz integration endpoints are available under `/payments/easebuzz/*`.
+See `docs/easebuzz_integration_steps.md` for setup (`easebuzz_lib` copy, env vars, payload format, and callbacks).
