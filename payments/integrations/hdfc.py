@@ -3,8 +3,14 @@ load_dotenv()
 
 import os, re, json, base64
 from decimal import Decimal, ROUND_HALF_UP
-import requests
-from requests import RequestException
+try:
+    import requests
+    from requests import RequestException
+except Exception:
+    requests = None
+
+    class RequestException(Exception):
+        pass
 
 HDFC_BASE_URL    = os.getenv("HDFC_BASE_URL", "https://smartgateway.hdfcbank.com")
 HDFC_API_KEY     = os.getenv("HDFC_API_KEY", "")
@@ -44,6 +50,8 @@ def _amount_str(amount) -> str:
 
 def create_session(*, order_id, amount, customer_id, customer_email, customer_phone,
                    first_name="", last_name="", description="", currency="INR") -> dict:
+    if requests is None:
+        raise HdfcError("Missing requests dependency. Install from requirements.txt")
     if not HDFC_MERCHANT_ID: raise HdfcError("Missing HDFC_MERCHANT_ID")
     if not HDFC_RETURN_URL or not HDFC_RETURN_URL.startswith("https://") or "?" in HDFC_RETURN_URL:
         raise HdfcError("Invalid HDFC_RETURN_URL (must be HTTPS, no query params)")
@@ -76,6 +84,8 @@ def create_session(*, order_id, amount, customer_id, customer_email, customer_ph
     raise HdfcError(f"Create session failed: {hint}. Response: {json.dumps(data)[:800]}")
 
 def get_order_status(order_id: str, customer_id: str) -> dict:
+    if requests is None:
+        raise HdfcError("Missing requests dependency. Install from requirements.txt")
     url = f"{HDFC_BASE_URL}/orders/{_sanitize_order_id(order_id)}"
     try:
         resp = requests.get(url, headers=_headers(customer_id), timeout=30)

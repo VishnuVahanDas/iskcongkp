@@ -1,6 +1,7 @@
 import json
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -8,6 +9,7 @@ from django.utils.dateparse import parse_datetime
 from datetime import timezone
 
 from .integrations.hdfc import create_session, get_order_status, HdfcError, _sanitize_order_id
+from .integrations.easebuzz import initiate_payment, parse_gateway_response, EasebuzzIntegrationError
 from django.utils.crypto import get_random_string
 from .emails import send_payment_confirmation
 from .models import Order
@@ -19,6 +21,71 @@ from .utils import extract_payment_status, SUCCESS_STATUSES, PENDING_STATUSES
 def _json_body(request):
     try: return json.loads(request.body.decode("utf-8"))
     except Exception: return None
+
+
+
+@csrf_protect
+@login_required
+@require_POST
+def easebuzz_initiate_view(request):
+    body = _json_body(request)
+    if not body:
+        return HttpResponseBadRequest("Invalid JSON body")
+
+    required = ["firstname", "phone", "email", "amount", "productinfo"]
+    missing = [k for k in required if not body.get(k)]
+    if missing:
+        return HttpResponseBadRequest(f"Missing fields: {', '.join(missing)}")
+
+    txnid = str(body.get("txnid") or generate_order_id(prefix="EZB"))
+    response_url = request.build_absolute_uri(reverse("payments:easebuzz_response"))
+
+    post_data = {
+        "txnid": txnid,
+        "firstname": body["firstname"],
+        "phone": body["phone"],
+        "email": body["email"],
+        "amount": str(body["amount"]),
+        "productinfo": body["productinfo"],
+        "surl": body.get("surl") or response_url,
+        "furl": body.get("furl") or response_url,
+        "city": body.get("city", ""),
+        "zipcode": body.get("zipcode", ""),
+        "address2": body.get("address2", ""),
+        "state": body.get("state", ""),
+        "address1": body.get("address1", ""),
+        "country": body.get("country", ""),
+        "udf1": body.get("udf1", ""),
+        "udf2": body.get("udf2", ""),
+        "udf3": body.get("udf3", ""),
+        "udf4": body.get("udf4", ""),
+        "udf5": body.get("udf5", ""),
+    }
+
+    try:
+        result = initiate_payment(post_data)
+    except EasebuzzIntegrationError as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": f"Easebuzz request failed: {str(e)}"}, status=500)
+
+    status = result.get("status")
+    payment_url = result.get("data")
+    if status == 1 and payment_url:
+        return JsonResponse({"ok": True, "txnid": txnid, "payment_url": payment_url, "result": result})
+    return JsonResponse({"ok": False, "txnid": txnid, "result": result}, status=400)
+
+
+@csrf_exempt
+@require_POST
+def easebuzz_response_view(request):
+    try:
+        final_response = parse_gateway_response(request.POST)
+        return JsonResponse({"ok": True, "response_data": final_response})
+    except EasebuzzIntegrationError as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": f"Could not parse Easebuzz response: {str(e)}"}, status=500)
 
 def hdfc_test_page_view(request):
     """Render a simple test page to initiate an HDFC payment session.
