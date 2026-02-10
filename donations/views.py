@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponseBadRequest, HttpResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
 from decimal import Decimal, InvalidOperation   
 import re
 from django.urls import reverse, NoReverseMatch
@@ -24,6 +24,7 @@ from django.utils import timezone
 
 
 @require_GET
+@ensure_csrf_cookie
 def donate_form(request):
     # Allow prefill from choose page via query params
     ctx = {
@@ -34,6 +35,7 @@ def donate_form(request):
 
 
 @require_GET
+@ensure_csrf_cookie
 def donate_choose(request):
     """Choose cause and preset amount before donor details."""
     causes = [
@@ -127,26 +129,20 @@ def donate_checkout(request):
 
     # --- send donor to HDFC hosted payment page ---
     # Set short-lived cookies so return page can auto-reconcile even if gateway doesn't append params
-    resp = redirect(redirect_url)
+    # Store identifiers in session (no cookies for payment flow)
     try:
-        resp.set_cookie("hdfc_last_order_id", txn_id, max_age=1800, secure=True, samesite="Lax")
-        cust_id = donor.email or donor.phone_e164 or f"donor-{donor.id}"
-        resp.set_cookie("hdfc_customer_id", cust_id, max_age=1800, secure=True, samesite="Lax")
+        request.session["hdfc_last_order_id"] = txn_id
+        request.session["hdfc_customer_id"] = donor.email or donor.phone_e164 or f"donor-{donor.id}"
     except Exception:
         pass
-    return resp
+    return redirect(redirect_url)
 
 
 # --- thank you page (return URL) ---
 @require_GET
 def thank_you(request):
-    txn_id = (
-        request.GET.get("txn_id")
-        or request.GET.get("order_id")
-        or request.COOKIES.get("hdfc_last_order_id")
-        or ""
-    )
-    customer_id = request.GET.get("customer_id") or request.COOKIES.get("hdfc_customer_id") or ""
+    txn_id = (request.GET.get("txn_id") or request.GET.get("order_id") or request.session.get("hdfc_last_order_id") or "")
+    customer_id = request.GET.get("customer_id") or request.session.get("hdfc_customer_id") or ""
     ctx = {"txn_id": txn_id, "status": "", "is_paid": False, "server_checked": False}
 
     donation = None
@@ -187,12 +183,14 @@ def thank_you(request):
         except HdfcError:
             ctx.update({"status": "ERROR", "server_checked": True})
 
-    resp = render(request, "donations/thank_you.html", ctx)
-    if txn_id:
-        resp.set_cookie("hdfc_last_order_id", txn_id, max_age=1800, secure=True, samesite="Lax")
-    if customer_id:
-        resp.set_cookie("hdfc_customer_id", customer_id, max_age=1800, secure=True, samesite="Lax")
-    return resp
+    try:
+        if txn_id:
+            request.session["hdfc_last_order_id"] = txn_id
+        if customer_id:
+            request.session["hdfc_customer_id"] = customer_id
+    except Exception:
+        pass
+    return render(request, "donations/thank_you.html", ctx)
 
 # --- magic link request (post-payment or manual) ---
 @require_POST

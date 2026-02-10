@@ -21,6 +21,3 @@ def courses(request):
 
 def shiksha(request):
     return render(request, 'services/shiksha.html')
-
-def food_for_life(request):
-    return render(request, 'services/food-for-life.html')

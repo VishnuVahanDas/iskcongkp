@@ -179,9 +179,13 @@ def hdfc_create_session_view(request):
         except Exception:
             pass
 
+        # Store minimal context in session (no cookies for payment flow)
+        try:
+            request.session["hdfc_last_order_id"] = oid
+            request.session["hdfc_customer_id"] = body["customer_id"]
+        except Exception:
+            pass
         resp = JsonResponse(result, status=200, safe=False)
-        resp.set_cookie("hdfc_last_order_id", oid, max_age=1800, secure=True, samesite="Lax")
-        resp.set_cookie("hdfc_customer_id", body["customer_id"], max_age=1800, secure=True, samesite="Lax")
         return resp
 
     except HdfcError as e:
@@ -252,41 +256,80 @@ def hdfc_order_status_view(request, order_id: str):
         # Normalize payment status
         norm_status, category, src = extract_payment_status(data)
 
-        # persist
+        # Upsert Order so DB always reflects latest status
         try:
-            order = Order.objects.get(order_id=oid)
-        except Order.DoesNotExist:
-            order = None
+            bank_id = (
+                data.get("id")
+                or (data.get("order") or {}).get("id")
+                or (data.get("payment") or {}).get("order_id")
+                or ""
+            )
+            txn_id = (
+                data.get("txn_id")
+                or (data.get("transaction") or {}).get("id")
+                or (data.get("txn_detail") or {}).get("txn_id")
+                or data.get("gateway_reference_id")
+                or ""
+            )
+            pm_type = data.get("payment_method_type") or (data.get("payment") or {}).get("method") or ""
+            pm = data.get("payment_method") or (data.get("payment") or {}).get("method") or ""
+            auth_type = data.get("auth_type") or (data.get("payment") or {}).get("auth_type") or ""
+            email = data.get("customer_email") or (data.get("payment_page_sdk_payload") or {}).get("customerEmail") or ""
+            phone = data.get("customer_phone") or (data.get("payment_page_sdk_payload") or {}).get("customerPhone") or ""
+            currency = data.get("currency") or (data.get("payment") or {}).get("currency") or "INR"
+            amount = (
+                data.get("amount")
+                or (data.get("txn_detail") or {}).get("txn_amount")
+                or (data.get("payment") or {}).get("amount")
+                or 0
+            )
+            links = (data.get("payment_links") or (data.get("metadata") or {}).get("payment_links") or {})
+            web_link = links.get("web") or links.get("mobile") or ""
+            safe_web_link = web_link if allowed_payment_redirect(web_link) else ""
 
-        if order:
-            order.status = norm_status or (order.status or "")
-            order.bank_order_id = data.get("id", order.bank_order_id or "")
-            order.txn_id = data.get("txn_id", order.txn_id or "")
-            order.payment_method_type = data.get("payment_method_type", order.payment_method_type or "")
-            order.payment_method = data.get("payment_method", order.payment_method or "")
-            order.auth_type = data.get("auth_type", order.auth_type or "")
-            order.refunded = bool(data.get("refunded", order.refunded))
-            try:
-                order.amount_refunded = data.get("amount_refunded", order.amount_refunded)
-            except Exception:
-                pass
-            order.last_status_payload = data
-
-            iso = data.get("order_expiry") or (data.get("metadata") or {}).get("order_expiry")
-            if iso:
-                dt = parse_datetime(iso)
-                if dt and dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                order.order_expiry = dt
-
-            # Mark description if we get it back in metadata or leave existing
-            meta = order.metadata or {}
-            if (data.get("description") and not meta.get("description")):
-                meta["description"] = data.get("description")
+            meta = (data.get("metadata") or {}).copy()
             if src:
                 meta["status_source"] = src
-            order.metadata = meta
-            order.save()
+            description = data.get("description") or meta.get("description")
+            if description:
+                meta["description"] = description
+
+            iso = data.get("order_expiry") or (data.get("metadata") or {}).get("order_expiry")
+
+            Order.objects.update_or_create(
+                order_id=oid,
+                defaults={
+                    "bank_order_id": bank_id or "",
+                    "status": norm_status or "",
+                    "amount": amount or 0,
+                    "currency": currency or "INR",
+                    "customer_id": customer_id,
+                    "customer_email": email or "",
+                    "customer_phone": phone or "",
+                    "payment_links_web": safe_web_link,
+                    "sdk_payload": data.get("sdk_payload") or None,
+                    "last_status_payload": data,
+                    "txn_id": txn_id or "",
+                    "payment_method_type": pm_type or "",
+                    "payment_method": pm or "",
+                    "auth_type": auth_type or "",
+                    "refunded": bool(data.get("refunded", False)),
+                    "amount_refunded": data.get("amount_refunded", 0) or 0,
+                    "metadata": meta or {},
+                },
+            )
+            if iso:
+                try:
+                    o = Order.objects.get(order_id=oid)
+                    dt = parse_datetime(iso)
+                    if dt and dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    o.order_expiry = dt
+                    o.save(update_fields=["order_expiry"])
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
         # norm_status already computed above
         paid = norm_status in SUCCESS_STATUSES
@@ -361,15 +404,15 @@ def hdfc_return_view(request):
     order_id = request.POST.get("order_id") or request.GET.get("order_id") or ""
     customer_id = request.POST.get("customer_id") or request.GET.get("customer_id") or ""
 
-    # Fallback to cookies set before redirecting to gateway
+    # Fallback to server session (no cookies)
     if not order_id:
         try:
-            order_id = request.COOKIES.get("hdfc_last_order_id", "")
+            order_id = request.session.get("hdfc_last_order_id", "")
         except Exception:
             order_id = ""
     if not customer_id:
         try:
-            customer_id = request.COOKIES.get("hdfc_customer_id", "")
+            customer_id = request.session.get("hdfc_customer_id", "")
         except Exception:
             customer_id = ""
 
@@ -516,34 +559,77 @@ def hdfc_return_view(request):
 
             # Persist to payments.Order table
             try:
-                order = Order.objects.get(order_id=_sanitize_order_id(order_id))
-                order.status = norm_status or (order.status or "")
-                order.bank_order_id = data.get("id", order.bank_order_id or "")
-                order.txn_id = data.get("txn_id", order.txn_id or "")
-                order.payment_method_type = data.get("payment_method_type", order.payment_method_type or "")
-                order.payment_method = data.get("payment_method", order.payment_method or "")
-                order.auth_type = data.get("auth_type", order.auth_type or "")
-                order.last_status_payload = data
-                order.save()
+                bank_id = (
+                    data.get("id")
+                    or (data.get("order") or {}).get("id")
+                    or (data.get("payment") or {}).get("order_id")
+                    or ""
+                )
+                txn_id = (
+                    data.get("txn_id")
+                    or (data.get("transaction") or {}).get("id")
+                    or (data.get("txn_detail") or {}).get("txn_id")
+                    or data.get("gateway_reference_id")
+                    or ""
+                )
+                pm_type = data.get("payment_method_type") or (data.get("payment") or {}).get("method") or ""
+                pm = data.get("payment_method") or (data.get("payment") or {}).get("method") or ""
+                auth_type = data.get("auth_type") or (data.get("payment") or {}).get("auth_type") or ""
+                email = data.get("customer_email") or (data.get("payment_page_sdk_payload") or {}).get("customerEmail") or ""
+                phone = data.get("customer_phone") or (data.get("payment_page_sdk_payload") or {}).get("customerPhone") or ""
+                currency = data.get("currency") or (data.get("payment") or {}).get("currency") or "INR"
+                amount = (
+                    data.get("amount")
+                    or (data.get("txn_detail") or {}).get("txn_amount")
+                    or (data.get("payment") or {}).get("amount")
+                    or 0
+                )
+                links = (data.get("payment_links") or (data.get("metadata") or {}).get("payment_links") or {})
+                web_link = links.get("web") or links.get("mobile") or ""
+                safe_web_link = web_link if allowed_payment_redirect(web_link) else ""
+
+                meta = (data.get("metadata") or {}).copy()
+                if src:
+                    meta["status_source"] = src
+                description = data.get("description") or meta.get("description")
+                if description:
+                    meta["description"] = description
+
+                Order.objects.update_or_create(
+                    order_id=_sanitize_order_id(order_id),
+                    defaults={
+                        "bank_order_id": bank_id or "",
+                        "status": norm_status or "",
+                        "amount": amount or 0,
+                        "currency": currency or "INR",
+                        "customer_id": customer_id,
+                        "customer_email": email or "",
+                        "customer_phone": phone or "",
+                        "payment_links_web": safe_web_link,
+                        "sdk_payload": data.get("sdk_payload") or None,
+                        "last_status_payload": data,
+                        "txn_id": txn_id or "",
+                        "payment_method_type": pm_type or "",
+                        "payment_method": pm or "",
+                        "auth_type": auth_type or "",
+                        "metadata": meta or {},
+                    },
+                )
                 # Update context from saved order and gateway response
-                _fill_ctx_from_order(order)
-                # Prefer DB status as the source of truth for UI
-                paid_db = bool(getattr(order, "is_paid", False))
+                try:
+                    _ord = Order.objects.get(order_id=_sanitize_order_id(order_id))
+                    _fill_ctx_from_order(_ord)
+                    paid_db = bool(getattr(_ord, "is_paid", False))
+                    current_status = str(getattr(_ord, "status", norm_status or "")).upper()
+                except Exception:
+                    paid_db = (norm_status in SUCCESS_STATUSES)
+                    current_status = norm_status or ""
                 ctx.update({
                     "server_checked": True,
                     "is_paid": paid_db,
-                    "status": str(getattr(order, "status", norm_status or "")).upper(),
-                    "is_pending": (str(getattr(order, "status", "")).upper() in PENDING_STATUSES) or is_pending,
+                    "status": current_status,
+                    "is_pending": (current_status in PENDING_STATUSES) or is_pending,
                 })
-                # Mark where we obtained status
-                try:
-                    if src:
-                        meta = order.metadata or {}
-                        meta["status_source"] = src
-                        order.metadata = meta
-                        order.save(update_fields=["metadata"])
-                except Exception:
-                    pass
                 # Enrich again from Donations if available (and fill missing fields)
                 try:
                     from donations.models import Donation
@@ -642,12 +728,15 @@ def hdfc_return_view(request):
             # Ignore on page render; client can still try manual check
             pass
 
-    resp = render(request, "payments/return.html", ctx)
-    if order_id:
-        resp.set_cookie("hdfc_last_order_id", order_id, max_age=1800, secure=True, samesite="Lax")
-    if customer_id:
-        resp.set_cookie("hdfc_customer_id", customer_id, max_age=1800, secure=True, samesite="Lax")
-    return resp
+    # Persist last identifiers in session (no cookies)
+    try:
+        if order_id:
+            request.session["hdfc_last_order_id"] = order_id
+        if customer_id:
+            request.session["hdfc_customer_id"] = customer_id
+    except Exception:
+        pass
+    return render(request, "payments/return.html", ctx)
 
 
 @csrf_exempt
