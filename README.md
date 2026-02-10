@@ -77,3 +77,7 @@ gunicorn iskcongkp.wsgi
 
 Static files are served from the `assets/` directory and media uploads from `media/`.
 
+
+## Payment gateway integration
+
+For Easebuzz integration steps, see `docs/easebuzz_integration_steps.md`.
