@@ -1,94 +1,105 @@
-# Easebuzz Payment Gateway Integration (Implemented in this project)
+# Easebuzz Payment Gateway Integration (Django)
 
-This repository now includes Easebuzz integration endpoints under the `payments` app.
+This guide aligns the Easebuzz integration to the current codebase and donation flow.
 
-## 1) Add Easebuzz SDK library
+## 1) Prerequisites (already in this repo)
 
-Copy `easebuzz_lib/` to the project root (same folder level as `manage.py`), as provided in Easebuzz's Django kit.
+- `easebuzz_lib/` is present at the project root.
+- A reusable wrapper is implemented at `payments/integrations/easebuzz.py`.
 
-Expected import used by code:
+No external SDK install is required beyond the existing `easebuzz_lib`.
 
-```python
-from easebuzz_lib.easebuzz_payment_gateway import Easebuzz
+---
+
+## 2) Environment configuration
+
+Set these in `.env` (or your production environment):
+
 ```
-
-> If this folder is not present, the new API endpoints will return a clear error that `easebuzz_lib` is missing.
-
-## 2) Configure environment variables
-
-Set these in your `.env`:
-
-```ini
-EASEBUZZ_MERCHANT_KEY=your_merchant_key
+PAYMENT_GATEWAY=EASEBUZZ
+EASEBUZZ_MERCHANT_KEY=your_key
 EASEBUZZ_SALT=your_salt
-EASEBUZZ_ENV=test
+EASEBUZZ_ENV=test   # or prod
 ```
 
-- Use `test` for UAT
-- Switch to `prod` only after UAT sign-off
+Notes:
+- `PAYMENT_GATEWAY` controls which flow `donate_checkout` uses.
+- Keep `EASEBUZZ_ENV=test` until real transactions are verified.
 
-## 3) Start Django server
+---
 
-```bash
-python manage.py runserver
+## 3) URLs you must expose
+
+The donation flow posts to this response URL (used for both `surl` and `furl`):
+
+```
+https://<your-domain>/donations/donate/easebuzz/response
 ```
 
-## 4) Initiate payment from your frontend/backend client
+This endpoint is implemented in `donations/views.py` as `easebuzz_response` and is CSRF-exempt because the gateway posts server-to-server.
 
-Endpoint:
+---
 
-- `POST /payments/easebuzz/initiate`
+## 4) How the donation flow works (current code)
 
-Required JSON fields:
+1. `donate_checkout` generates a `txn_id` and calls `easebuzz_create_payment`.
+2. Easebuzz returns a payment link. We validate it with `allowed_payment_redirect`.
+3. We save a `Donation` and mirror it into `payments.Order`.
+4. The donor is redirected to the Easebuzz payment page.
+5. Easebuzz posts back to `easebuzz_response`.
+6. We verify hash via `easebuzz_verify_response`, update `Donation` and `Order`, and render `donations/thank_you.html`.
 
+All of this is already wired in code. Ensure `PAYMENT_GATEWAY=EASEBUZZ` to activate it.
+
+---
+
+## 5) Required request fields (internal wrapper)
+
+`payments/integrations/easebuzz.py` sends these fields:
+
+- `txnid` (our internal `txn_id`)
 - `firstname`
 - `phone`
 - `email`
 - `amount`
 - `productinfo`
+- `surl`, `furl`
+- `address1`, `address2`, `city`, `state`, `country`, `zipcode`
+- `udf1`..`udf5` (used for internal metadata)
 
-Optional:
+The wrapper already formats amount and sanitizes `txnid`.
 
-- `txnid` (auto-generated if omitted)
-- `surl`, `furl` (defaults to `/payments/easebuzz/response`)
-- `city`, `zipcode`, `address1`, `address2`, `state`, `country`, `udf1..udf5`
+---
 
-Example payload:
+## 6) Response verification and safety
 
-```json
-{
-  "firstname": "Jitendra",
-  "phone": "9999999999",
-  "email": "jitendra@example.com",
-  "amount": "1.03",
-  "productinfo": "Apple Mobile"
-}
-```
+- The response handler calls `easebuzz_verify_response` which validates the hash.
+- For successful payments, it optionally calls the transaction lookup API to confirm.
+- The response view is CSRF-exempt, but we still validate the hash.
+- Redirect URLs are validated against allowed hosts in `payments/utils.py`.
 
-Success response includes `payment_url` for redirect:
+Allowed Easebuzz hosts are currently:
+- `pay.easebuzz.in`
+- `testpay.easebuzz.in`
+- `devpay.easebuzz.in`
 
-```json
-{
-  "ok": true,
-  "txnid": "EZB...",
-  "payment_url": "https://..."
-}
-```
+---
 
-## 5) Handle Easebuzz gateway callback
+## 7) Go-live checklist
 
-Endpoint already added:
+1. Confirm the response URL is reachable over HTTPS.
+2. Complete at least one test transaction with `EASEBUZZ_ENV=test`.
+3. Switch to production keys and set `EASEBUZZ_ENV=prod`.
+4. Verify `PAYMENT_GATEWAY=EASEBUZZ` is set in production.
+5. Ensure emails/receipts are sent for successful payments.
+6. Monitor failures and reconcile via transaction lookup if needed.
 
-- `POST /payments/easebuzz/response`
+---
 
-Set this URL in Easebuzz (`surl`/`furl`) or pass custom callback URLs while initiating payment.
+## 8) Optional local testing
 
-The endpoint parses posted form data through Easebuzz SDK response helper and returns JSON.
+If you want to experiment with Easebuzz’s sample kit:
 
-## 6) Production checklist
-
-1. Keep `EASEBUZZ_ENV=test` until all cases pass.
-2. Ensure callback URLs are HTTPS and publicly reachable.
-3. Move to `EASEBUZZ_ENV=prod` with production key/salt.
-4. Persist payment outcomes in your business models before fulfillment.
-5. Add reconciliation jobs (transaction/refund APIs) if required by your ops flow.
+1. Clone and run the Easebuzz Django kit locally.
+2. Observe request/response behavior.
+3. Compare with our wrapper in `payments/integrations/easebuzz.py`.

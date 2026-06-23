@@ -1,0 +1,41 @@
+<section id="home" class="home-hero">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-6 home-hero__copy">
+                <p class="home-hero__eyebrow mb-2">ISKCON Gorakhpur</p>
+                <h1 class="home-hero__title mb-3">Temple life, seva, and festivals in one place</h1>
+                <p class="home-hero__lead mb-4">
+                    Although our temple serves through many departments, the central focus remains deity worship,
+                    prasadam distribution, and the study and distribution of Srila Prabhupada's books. Every other
+                    activity in the temple is meant to support and strengthen these core services.
+                </p>
+                <div class="d-flex flex-wrap gap-2 home-hero__jump-links">
+                    <a class="btn btn-light" href="#who-we-are">Who We Are</a>
+                    <a class="btn btn-outline-light" href="#activities">Activities</a>
+                    <a class="btn btn-outline-light" href="#festivals">Festivals</a>
+                    <a class="btn btn-warning" href="#donate">Donate</a>
+                    <a class="btn btn-outline-light" href="#yatra">Yatra</a>
+                    <a class="btn btn-outline-light" href="#contact">Contact</a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="home-hero__panel">
+                    {% if banner %}
+                    <div class="home-hero__feature">
+                        <img src="{{ banner.0.image.url }}" alt="{{ banner.0.alt }}" class="img-fluid rounded-4">
+                    </div>
+                    {% endif %}
+                    {% if top_header %}
+                    <div class="row g-2 mt-3">
+                        {% for temp in top_header|slice:":3" %}
+                        <div class="col-4">
+                            <img src="{{ temp.image.url }}" alt="{{ temp.alt }}" class="img-fluid rounded-3">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

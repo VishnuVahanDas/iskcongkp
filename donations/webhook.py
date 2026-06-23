@@ -1,6 +1,5 @@
-import base64, json
-from django.conf import settings
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+import json
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -11,86 +10,27 @@ from .models import Donation
 from .services import mark_paid_and_receipt, issue_magic_link
 
 
-def _check_basic_auth(request) -> bool:
-    user = getattr(settings, "HDFC_WEBHOOK_BASIC_USER", None)
-    pwd  = getattr(settings, "HDFC_WEBHOOK_BASIC_PASS", "")
-    if not user:
-        return False
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Basic "):
-        return False
-    try:
-        raw = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
-        username, _, password = raw.partition(":")
-    except Exception:
-        return False
-    return (username == user) and (password == pwd)
-
-
-def _check_basic_auth_with_merchant_keys(request) -> bool:
-    """Allow verifying webhook using Merchant ID and API Key as Basic auth.
-
-    This lets you avoid configuring a separate webhook username/password in the dashboard.
-    Configure SmartGateway to send username = HDFC_MERCHANT_ID and password = HDFC_API_KEY.
-    """
-    mid = getattr(settings, "HDFC_MERCHANT_ID", None)
-    api_key = getattr(settings, "HDFC_API_KEY", None)
-    if not (mid and api_key):
-        return False
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Basic "):
-        return False
-    try:
-        raw = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
-        username, _, password = raw.partition(":")
-    except Exception:
-        return False
-    return (username == mid) and (password == api_key)
-
-
-def _check_custom_header(request) -> bool:
-    key = getattr(settings, "HDFC_WEBHOOK_HEADER_KEY", None)
-    val = getattr(settings, "HDFC_WEBHOOK_HEADER_VALUE", None)
-    if not key or not val:
-        return False
-    return request.headers.get(key) == val
-
-
 @csrf_exempt
-def hdfc_webhook(request):
+def payment_webhook(request):
     if request.method != "POST":
         return HttpResponseBadRequest("POST only")
-
-    # 🔐 Auth: enforce Basic auth either via explicit webhook creds OR MerchantID/API Key, optional extra custom header
-    basic_ok = _check_basic_auth(request) or _check_basic_auth_with_merchant_keys(request)
-    header_ok = _check_custom_header(request)
-    creds_configured = any([
-        getattr(settings, "HDFC_WEBHOOK_BASIC_USER", None),
-        getattr(settings, "HDFC_MERCHANT_ID", None),
-        getattr(settings, "HDFC_WEBHOOK_HEADER_KEY", None),
-    ])
-    if creds_configured and not (basic_ok or header_ok):
-        return HttpResponse("Unauthorized", status=401)
 
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except Exception:
         return HttpResponseBadRequest("Invalid JSON")
 
-    # Map fields according to HDFC webhook samples (see docs)
-    # Note: HDFC typically sends both a gateway order ID and a transaction ID.
-    # In our flow, we pass our internal txn_id as the gateway "order_id" when creating the session.
+    # Map fields from gateway webhook payload
     gw_order_id = payload.get("order", {}).get("id") or payload.get("order_id") or ""
     gw_txn_id   = payload.get("transaction", {}).get("id") or payload.get("txn_id") or ""
 
     norm_status, category, src = extract_payment_status(payload)
     mode = payload.get("payment", {}).get("method", "") or (payload.get("payment_method") or "")
 
-    # Resolve donation robustly:
-    # 1) If gateway sent back our order_id (which we set to our txn_id), match on Donation.txn_id == gw_order_id
-    # 2) Else, if we stored the gateway order/session id on Donation.order_id, match on that
-    # 3) Else, try matching on the gateway transaction id to Donation.txn_id
-    #    or Donation.order_id (legacy/alternate maps)
+    # Resolve donation:
+    # 1) Match on Donation.txn_id == gw_order_id (our internal txn id passed as gateway order_id)
+    # 2) Match on Donation.order_id == gw_order_id (gateway session/access key stored on donation)
+    # 3) Fallback to gateway transaction id
     donation = None
     if gw_order_id:
         donation = Donation.objects.filter(txn_id=gw_order_id).first() or \
@@ -114,7 +54,6 @@ def hdfc_webhook(request):
                 Order.objects.filter(bank_order_id=donation.order_id).update(status=norm_status)
         except Exception:
             pass
-        # send receipt + magic link unless already sent via another path
         meta = donation.gateway_meta or {}
         if not bool(meta.get("receipt_email_sent")):
             mlt = issue_magic_link(donation.donor)

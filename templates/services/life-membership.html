@@ -61,15 +61,6 @@
                         <div class="node__content clearfix">
 
                           <div
-                            class="field field--name-field-banner field--type-entity-reference field--label-hidden field__item">
-                            <img sizes="(min-width:1500px) 1500px, 100vw"
-                              src="{% static 'themes/images/life_membership.jpg' %}"
-                              alt="" />
-
-
-                          </div>
-
-                          <div
                             class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item">
                             <p>The ISKCON Life Membership program was introduced in early 1970’s as an opportunity to
                               become an integral part of the ISKCON family by His Divine Grace A.C. Bhaktivedanta Swami
@@ -91,17 +82,84 @@
                               <li>Your donation is tax exempt under section 80-G of the income tax act, 1961. (India) .
                               </li>
                               <li>Your donation will help propagate Krishna consciousness all over the globe.</li>
-                              <li>You donation will be used for construction of Karnataka’s grand Jagannath Mandir.</li>
+                              <li>Your donation will be used for the construction and expansion of ISKCON Gorakhpur temple.</li>
                               <li>Wherever guest house facilities are available, with prior confirmation, you will get 3
                                 days of free stay and prasadam once a year.</li>
                             </ul>
                             <h2>Once in a Lifetime Offer – (Unit of ISKCON Bureau)</h2>
-                            <h2>ISKCON Life Membership for <span style="color:#339966;">Rs. 55,555</span></h2>
-                            <div class="row col-xs-12 col-sm-12 col-md-12"
-                              style="display:flex;justify-content:center;text-align:center;">
-                              <p><strong>For online </strong><br /><a class="btn btn-primary btn-sm active"
-                                  href="https://iskcondonate.com/" target="_blank">PLEASE CLICK HERE
-                                  TO REGISTER</a></p>
+                            <h2>ISKCON Life Membership for <span style="color:#9d174d;">₹55,555</span></h2>
+                            <div class="row col-xs-12 col-sm-12 col-md-12" style="display:flex;justify-content:center;text-align:center;margin:1.5rem 0;">
+                              <button type="button" class="btn btn-primary btn-sm active" onclick="document.getElementById('lm-modal').style.display='flex'">
+                                Become a Life Member →
+                              </button>
+                            </div>
+
+                            <!-- Life Membership Payment Modal -->
+                            <div id="lm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+                              <div style="background:#fff;border-radius:14px;padding:2rem 1.75rem;max-width:440px;width:94%;position:relative;max-height:90vh;overflow-y:auto;">
+                                <button onclick="document.getElementById('lm-modal').style.display='none'" style="position:absolute;top:.75rem;right:1rem;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#831843;">✕</button>
+                                <h4 style="color:#831843;margin:0 0 .25rem;">Life Membership</h4>
+                                <p style="color:#6b7280;font-size:.9rem;margin:0 0 1.2rem;">One-time contribution of <strong>₹55,555</strong></p>
+                                <form method="POST" action="{% url 'donations:donate_checkout' %}">
+                                  {% csrf_token %}
+                                  <input type="hidden" name="gateway_override" value="EASEBUZZ">
+                                  <input type="hidden" name="amount" value="55555">
+                                  <input type="hidden" name="purpose" value="Life Membership">
+
+                                  <div style="margin-bottom:.85rem;">
+                                    <label style="display:block;font-size:.85rem;color:#374151;margin-bottom:.3rem;">Full Name *</label>
+                                    <input type="text" name="name" required placeholder="As per official records"
+                                      style="width:100%;padding:.5rem .75rem;border:1px solid #d1d5db;border-radius:8px;font-size:.95rem;">
+                                  </div>
+                                  <div style="margin-bottom:.85rem;">
+                                    <label style="display:block;font-size:.85rem;color:#374151;margin-bottom:.3rem;">Email *</label>
+                                    <input type="email" name="email" required placeholder="you@example.com"
+                                      style="width:100%;padding:.5rem .75rem;border:1px solid #d1d5db;border-radius:8px;font-size:.95rem;">
+                                  </div>
+                                  <div style="margin-bottom:.85rem;">
+                                    <label style="display:block;font-size:.85rem;color:#374151;margin-bottom:.3rem;">Mobile Number *</label>
+                                    <input type="tel" name="phone" required placeholder="10-digit mobile"
+                                      style="width:100%;padding:.5rem .75rem;border:1px solid #d1d5db;border-radius:8px;font-size:.95rem;">
+                                  </div>
+                                  <div style="margin-bottom:.85rem;">
+                                    <label style="display:block;font-size:.85rem;color:#374151;margin-bottom:.3rem;">PAN (optional, for 80G receipt)</label>
+                                    <input type="text" name="pan" placeholder="ABCDE1234F" maxlength="10"
+                                      style="width:100%;padding:.5rem .75rem;border:1px solid #d1d5db;border-radius:8px;font-size:.95rem;text-transform:uppercase;">
+                                  </div>
+
+                                  <div style="margin-bottom:.85rem;">
+                                    <label style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;color:#374151;cursor:pointer;">
+                                      <input type="checkbox" name="need_80g" id="lm-80g" onchange="document.getElementById('lm-addr').style.display=this.checked?'block':'none'">
+                                      I need 80G tax exemption certificate
+                                    </label>
+                                  </div>
+                                  <div id="lm-addr" style="display:none;background:#fdf2f8;border-radius:8px;padding:1rem;margin-bottom:.85rem;">
+                                    <p style="font-size:.8rem;color:#6b7280;margin:0 0 .75rem;">Address required for 80G receipt</p>
+                                    <input type="text" name="address_line1" placeholder="Address Line 1"
+                                      style="width:100%;padding:.45rem .7rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;margin-bottom:.5rem;">
+                                    <input type="text" name="address_line2" placeholder="Address Line 2 (optional)"
+                                      style="width:100%;padding:.45rem .7rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;margin-bottom:.5rem;">
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
+                                      <input type="text" name="city" placeholder="City"
+                                        style="padding:.45rem .7rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;">
+                                      <input type="text" name="state" placeholder="State"
+                                        style="padding:.45rem .7rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;">
+                                    </div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+                                      <input type="text" name="postal_code" placeholder="PIN Code"
+                                        style="padding:.45rem .7rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;">
+                                      <input type="text" name="country" value="IN" placeholder="Country"
+                                        style="padding:.45rem .7rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;">
+                                    </div>
+                                  </div>
+
+                                  <button type="submit"
+                                    style="width:100%;padding:.65rem;background:linear-gradient(135deg,#831843,#9d174d);color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;margin-top:.5rem;">
+                                    Proceed
+                                  </button>
+                                  <p style="font-size:.78rem;color:#9ca3af;text-align:center;margin:.6rem 0 0;">Secure payment · 80G eligible · Tax receipt issued</p>
+                                </form>
+                              </div>
                             </div>
                             <h3>Where is life patron office(For offline)?</h3>
                             <p>Life patron program office is situated inside the temple courtyard. This is the main
@@ -109,11 +167,11 @@
                               other type of donations.</p>
                             <h3>Grievances &amp; Support</h3>
                             <ul>
-                              <li><strong>Level 1</strong> – Bh Rishabh Ph: +91-9569989637 (info@iskcongorakhpur.com)
+                              <li><strong>Level 1</strong> –HG  Rishabha Gauranga Das Ph: +91-9569989637 (info@iskcongorakhpur.com)
                               </li>
-                              <li><strong>Level 2</strong> – Bh Ravi Ph: +91-9170572937
+                              <li><strong>Level 2</strong> – Bh Rasa chandra Das Ph: +91-9170572937
                               </li>
-                              <li><strong>Level 3</strong> –  Bh Ravindra Ph: +91-7880964086
+                              <li><strong>Level 3</strong> –  Bh Rāsa Vallabha Das Ph: +91-7880964086
                               </li>
                             </ul>
                             <p>For the ISKCON Life Membership policy, please <a href="/life-membership-policy">check
@@ -122,11 +180,11 @@
 
 
                           <span class="a2a_kit a2a_kit_size_32 addtoany_list"
-                            data-a2a-url="https://iskconbangalore.co.in/services/life-membership"
+                            data-a2a-url="https://iskcongkp.com/services/life-membership"
                             data-a2a-title="ISKCON Life Membership"><a class="a2a_button_facebook"></a><a
                               class="a2a_button_whatsapp"></a><a class="a2a_button_email"></a><a
                               class="a2a_dd addtoany_share"
-                              href="https://www.addtoany.com/share#url=https%3A%2F%2Fiskconbangalore.co.in%2Fservices%2Flife-membership&amp;title=ISKCON%20Life%20Membership"></a></span>
+                              href="https://www.addtoany.com/share#url=https%3A%2F%2Fiskcongkp.com%2Fservices%2Flife-membership&amp;title=ISKCON%20Life%20Membership"></a></span>
                         </div>
                       </article>
 

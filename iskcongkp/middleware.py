@@ -22,3 +22,19 @@ class MaintenanceModeMiddleware:
             ):
                 return redirect(maintenance_url)
         return self.get_response(request)
+
+
+class CanonicalHostMiddleware:
+    """Redirect to a canonical host to keep cookies/CSRF consistent."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.canonical_host = getattr(settings, "CANONICAL_HOST", "") or ""
+
+    def __call__(self, request):
+        if self.canonical_host:
+            host = request.get_host().split(":", 1)[0].lower()
+            if host != self.canonical_host.lower():
+                scheme = "https" if request.is_secure() else "http"
+                return redirect(f"{scheme}://{self.canonical_host}{request.get_full_path()}")
+        return self.get_response(request)

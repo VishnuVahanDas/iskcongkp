@@ -51,17 +51,15 @@
                       <div class="node__content clearfix">
                         <div class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item">
                           <div class="status-card card p-4">
-                            <div id="status-wrapper">
+                            <div id="status-wrapper" data-order-id="{{ order_id|default:'' }}" data-customer-id="{{ customer_id|default:'' }}">
                               {% if server_checked and is_paid %}
                                 <h2 class="h3 d-flex align-items-center text-success mb-2">
                                   <span class="status-icon">✅</span> Payment Successful
                                 </h2>
                                 <p class="mb-3">Thank you for your support. Your payment has been received. If you provided an email, a receipt will arrive shortly.</p>
                                 <div class="d-flex gap-2">
-                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
-                                  {% if user.is_authenticated %}
-                                    <a class="btn btn-outline-primary" href="{% url 'payments:my_payments' %}">My Payments</a>
-                                  {% endif %}
+                                  <a class="btn btn-outline-primary" href="{% url 'payments:my_payments' %}">My Payments</a>
+                                  <a class="btn btn-primary" href="{% url 'donations:donate_choose' %}">Donate Again</a>
                                 </div>
                               {% elif server_checked and is_pending %}
                                 <h2 class="h3 d-flex align-items-center text-warning mb-2">
@@ -69,8 +67,8 @@
                                 </h2>
                                 <p class="mb-3">Your payment is being processed by the bank. This can take a few minutes. If the amount was deducted, it should complete automatically. You can revisit this page shortly.</p>
                                 <div class="d-flex gap-2">
-                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
-                                  <a class="btn btn-outline-secondary" href="/contact">Contact Us</a>
+                                  <a class="btn btn-outline-primary" href="{% url 'payments:my_payments' %}">My Payments</a>
+                                  <a class="btn btn-primary" href="{% url 'donations:donate_choose' %}">Donate Again</a>
                                 </div>
                               {% elif server_checked %}
                                 <h2 class="h3 d-flex align-items-center text-danger mb-2">
@@ -78,14 +76,15 @@
                                 </h2>
                                 <p class="mb-3">We could not confirm a successful payment. If money was deducted, it may be reversed by your bank automatically. You may try again.</p>
                                 <div class="d-flex gap-2">
-                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
-                                  <a class="btn btn-outline-primary" href="{% url 'donations:shastra_daan' %}">Donate Again</a>
+                                  <a class="btn btn-outline-primary" href="{% url 'payments:my_payments' %}">My Payments</a>
+                                  <a class="btn btn-primary" href="{% url 'donations:donate_choose' %}">Donate Again</a>
                                 </div>
                               {% else %}
                                 <h2 class="h3 mb-2" data-status-head>Verifying your payment…</h2>
                                 <p class="mb-3" data-status-sub>We are confirming your payment with the bank. This usually takes a few seconds.</p>
                                 <div class="d-flex gap-2">
-                                  <a class="btn btn-primary" href="{% url 'homepage:homepage' %}">Go to Homepage</a>
+                                  <a class="btn btn-outline-primary" href="{% url 'payments:my_payments' %}">My Payments</a>
+                                  <a class="btn btn-primary" href="{% url 'donations:donate_choose' %}">Donate Again</a>
                                 </div>
                               {% endif %}
                             </div>
@@ -182,30 +181,37 @@
       {% include 'footer.html' %}
     </div></div>
   </div>
-  {% include 'body_script.html' %}
+  {# body_script includes addtoany/cookie banners; omit for payments page #}
   <script>
     // Auto-refresh if payment is pending to improve UX when server has already checked
     {% if server_checked and not is_paid and is_pending %}
       setTimeout(function(){ window.location.reload(); }, 12000); // 12s
     {% endif %}
 
-    // Removed cookie-based client fallback; server always reconciles status
+    // Poll status endpoint for real-time updates when pending/unknown
+    (function() {
+      var wrap = document.getElementById('status-wrapper');
+      if (!wrap) return;
+      var orderId = wrap.getAttribute('data-order-id') || '';
+      var customerId = wrap.getAttribute('data-customer-id') || '';
+      if (!orderId || !customerId) return;
+      var shouldPoll = {% if not is_paid %}true{% else %}false{% endif %};
+      if (!shouldPoll) return;
+
+      function poll() {
+        var url = "/payments/status/" + encodeURIComponent(orderId) + "?customer_id=" + encodeURIComponent(customerId);
+        fetch(url, { credentials: "same-origin" })
+          .then(function(r){ return r.json(); })
+          .then(function(data){
+            if (!data) return;
+            if (data.is_paid || (data.data && data.data.status && String(data.data.status).toUpperCase() !== "{{ status|default:''|upper }}")) {
+              window.location.reload();
+            }
+          })
+          .catch(function(){ /* ignore */ });
+      }
+      setInterval(poll, 12000);
+    })();
   </script>
 </body>
 </html>
-                            {% if server_checked %}
-                              <hr class="my-4">
-                              <h3 class="h5 mb-3">Payment Details</h3>
-                              <div class="table-responsive">
-                                <table class="table table-sm">
-                                  <tbody>
-                                    <tr><th scope="row">Order ID</th><td>{{ order_id }}</td></tr>
-                                    <tr><th scope="row">Amount</th><td>{% if amount %}{{ currency|default:'INR' }} {{ amount }}{% else %}-{% endif %}</td></tr>
-                                    <tr><th scope="row">Purpose</th><td>{{ purpose|default:'Donation' }}</td></tr>
-                                    <tr><th scope="row">Name</th><td>{{ donor_name|default:'-' }}</td></tr>
-                                    <tr><th scope="row">Email</th><td>{{ customer_email|default:'-' }}</td></tr>
-                                    <tr><th scope="row">Contact</th><td>{{ customer_phone|default:'-' }}</td></tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            {% endif %}

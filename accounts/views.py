@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.middleware.csrf import get_token
 from django.views.decorators.cache import never_cache
 
 from iskcongkp.forms import SignInForm
@@ -31,6 +32,11 @@ def _generate_customer_id() -> str:
 @ensure_csrf_cookie
 @never_cache
 def signup_view(request):
+    # Force CSRF cookie on initial render
+    try:
+        get_token(request)
+    except Exception:
+        pass
     # Allow manual reset via query or form action
     if request.GET.get("reset") == "1" or request.POST.get("action") == "reset_otp":
         try:
@@ -176,6 +182,11 @@ def signup_view(request):
 @ensure_csrf_cookie
 @never_cache
 def signin_view(request):
+    # Force CSRF cookie on initial render
+    try:
+        get_token(request)
+    except Exception:
+        pass
     # Allow resetting login flow
     if request.GET.get("reset") == "1" or request.POST.get("action") == "reset_otp":
         try:

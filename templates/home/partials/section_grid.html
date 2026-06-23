@@ -1,0 +1,31 @@
+{% load static %}
+<section id="{{ section.id }}" class="home-section{% if section.alt %} home-section--alt{% endif %}">
+    <div class="container">
+        <div class="row g-4 align-items-stretch">
+            <div class="col-lg-4">
+                <div class="home-section__intro h-100">
+                    <p class="home-section__eyebrow mb-2">{{ section.eyebrow }}</p>
+                    <h2 id="{{ section.id }}-title" class="home-section__title mb-3">{{ section.title }}</h2>
+                    <p class="home-section__lead mb-3">{{ section.lead }}</p>
+                    {% if section.cta %}
+                    <a class="btn btn-primary" href="{{ section.cta.href }}"{% if section.cta.target %} target="{{ section.cta.target }}" rel="{{ section.cta.rel|default:'noopener noreferrer' }}"{% endif %}>
+                        {{ section.cta.label }}
+                    </a>
+                    {% endif %}
+                    {% if section.image %}
+                    <div class="home-section__image mt-4">
+                        <img src="{% static section.image %}" alt="{{ section.image_alt }}" class="img-fluid rounded-4">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="row g-3">
+                    {% for item in section.items %}
+                    {% include 'home/partials/section_card.html' with item=item section=section %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

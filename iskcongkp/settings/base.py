@@ -11,23 +11,45 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 import os.path
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except Exception:
+    def load_dotenv(*args, **kwargs):
+        return False
 
 # Load environment variables
 load_dotenv()
 
-HDFC_BASE_URL    = os.getenv("HDFC_BASE_URL", "https://smartgateway.hdfcbank.com")
-HDFC_API_KEY     = os.getenv("HDFC_API_KEY", "")
-HDFC_MERCHANT_ID = os.getenv("HDFC_MERCHANT_ID", "")
-HDFC_RESELLER_ID = os.getenv("HDFC_RESELLER_ID", "hdfc_reseller")
-HDFC_RETURN_URL  = os.getenv("HDFC_RETURN_URL", "")
-HDFC_APPEND_COLON = os.getenv("HDFC_APPEND_COLON", "false").lower() in ("1", "true", "yes")
-# UAT override: set HDFC_CLIENT_ID=hdfcmaster in .env; PROD: omit -> defaults to MID
-HDFC_CLIENT_ID   = os.getenv("HDFC_CLIENT_ID", HDFC_MERCHANT_ID)
-# Webhook auth you configure in SmartGateway Dashboard
-HDFC_WEBHOOK_BASIC_USER = os.getenv("WEBHOOK_BASIC_USER")     # Dashboard > Webhooks (if you set Basic Auth)
-HDFC_WEBHOOK_BASIC_PASS = os.getenv("HDFC_WEBHOOK_BASIC_PASS") # often empty is allowed, but supported here
+PAYMENT_GATEWAY = "EASEBUZZ"
+EASEBUZZ_MERCHANT_KEY = os.getenv("EASEBUZZ_MERCHANT_KEY", "")
+EASEBUZZ_SALT = os.getenv("EASEBUZZ_SALT", "")
+EASEBUZZ_ENV = os.getenv("EASEBUZZ_ENV", "test")  # test | prod
+EASEBUZZ_KEY = EASEBUZZ_MERCHANT_KEY  # alias used by AutoPay utilities
 
+# UPI AutoPay — Nitya Seva ONLY
+# Same credentials as regular gateway — no new key/salt needed
+AUTOPAY_BASE_URL       = "https://api.easebuzz.in/autocollect/v1"
+AUTOPAY_ACCESS_KEY_URL = AUTOPAY_BASE_URL + "/access-key/generate"
+AUTOPAY_NOTIFY_URL     = AUTOPAY_BASE_URL + "/mandate/notify"
+AUTOPAY_EXECUTE_URL    = AUTOPAY_BASE_URL + "/mandate/execute"
+NITYA_SEVA_SUCCESS_URL = "https://www.iskcongorakhpur.com/donations/nitya-seva/success/"
+NITYA_SEVA_FAILURE_URL = "https://www.iskcongorakhpur.com/donations/nitya-seva/failure/"
+
+# Celery beat schedule for monthly Nitya Seva UPI AutoPay debits
+try:
+    from celery.schedules import crontab as _crontab
+    CELERY_BEAT_SCHEDULE = {
+        "nitya-seva-notify": {
+            "task":     "donations.tasks.send_monthly_debit_notifications",
+            "schedule": _crontab(day_of_month="28", hour="10", minute="0"),
+        },
+        "nitya-seva-execute": {
+            "task":     "donations.tasks.execute_monthly_debits",
+            "schedule": _crontab(day_of_month="30", hour="10", minute="0"),
+        },
+    }
+except ImportError:
+    pass  # Celery not installed; beat schedule skipped
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(
@@ -46,10 +68,15 @@ ALLOWED_HOSTS = ["iskcongorakhpur.com", "www.iskcongorakhpur.com"]
 CSRF_TRUSTED_ORIGINS = [
     "https://iskcongorakhpur.com",
     "https://www.iskcongorakhpur.com",
-    "https://smartgateway.hdfcbank.com",
-    "https://smartgatewayuat.hdfcbank.com",
-    "https://*.juspay.in",
+    "https://pay.easebuzz.in",
+    "https://testpay.easebuzz.in",
 ]
+
+try:
+    import django_cleanup  # noqa: F401
+    _CLEANUP_APP = 'django_cleanup.apps.CleanupConfig'
+except Exception:
+    _CLEANUP_APP = None
 
 # Application definition
 
@@ -67,8 +94,9 @@ INSTALLED_APPS = [
     'who_we_are',
     'festivals',
     'services',
-    'django_cleanup.apps.CleanupConfig', # should go after your apps
 ]
+if _CLEANUP_APP:
+    INSTALLED_APPS.append(_CLEANUP_APP)  # should go after your apps
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -1,0 +1,10 @@
+<div class="col-md-6 col-xl-4">
+    <article id="{{ item.id }}" class="home-card h-100">
+        <p class="home-card__eyebrow mb-2">{{ section.eyebrow }}</p>
+        <h3 class="home-card__title">{{ item.title }}</h3>
+        <p class="home-card__text">{{ item.text }}</p>
+        <a class="home-card__link" href="{{ item.href }}"{% if item.target %} target="{{ item.target }}" rel="{{ item.rel|default:'noopener noreferrer' }}"{% endif %}>
+            {{ item.button_label|default:"Open page" }}
+        </a>
+    </article>
+</div>

@@ -1,12 +1,12 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#">
 <head>
-  <meta charset="utf-8" />
-  <title>My Payments</title>
+  {% include 'head.html' %}
+  <title>My Payments | ISKCON Gorakhpur</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
-    .card { max-width: 1000px; margin: auto; padding: 1.25rem; border: 1px solid #ddd; border-radius: 12px; }
+    .card { max-width: 1000px; margin: 2rem auto; padding: 1.25rem; border: 1px solid #ddd; border-radius: 12px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: .6rem .5rem; border-bottom: 1px solid #eee; text-align: left; font-size: .95rem; }
     .muted { color: #555; }
@@ -17,8 +17,18 @@
     .btn.secondary { background: #fff; color: #111; }
   </style>
 </head>
-<body>
-  <div class="card">
+<body class="layout-no-sidebars">
+  <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+    <div id="page-wrapper"><div id="page">
+      {% include 'navbar.html' %}
+      <div class="highlighted"><aside class="container section clearfix" role="complementary"><div data-drupal-messages-fallback class="hidden"></div></aside></div>
+      <div id="main-wrapper" class="layout-main-wrapper clearfix">
+        <div id="main" class="container">
+          <div class="row row-offcanvas row-offcanvas-left clearfix">
+            <main class="main-content col" id="content" role="main">
+              <section class="section">
+                <a href="#main-content" id="main-content" tabindex="-1"></a>
+                <div class="card">
     <h2>My Payments</h2>
     <p class="muted">Customer ID: {{ customer_id }}</p>
 
@@ -43,10 +53,7 @@
             <td>{{ o.created_at }}</td>
             <td>{{ o.metadata.description|default:'Donation' }}</td>
             <td class="actions">
-              <a class="btn" href="/payments/return?order_id={{ o.order_id }}&customer_id={{ customer_id }}">View Status</a>
-              {% if o.payment_links_web %}
-                <a class="btn secondary" href="{{ o.payment_links_web }}" target="_blank">Pay Link</a>
-              {% endif %}
+              <a class="btn" href="/payments/return?order_id={{ o.order_id }}&customer_id={{ o.customer_id|default:customer_id }}">View Status</a>
             </td>
           </tr>
           {% endfor %}
@@ -59,7 +66,15 @@
     {% else %}
       <p class="muted">No payments found.</p>
     {% endif %}
+                </div>
+              </section>
+            </main>
+          </div>
+        </div>
+      </div>
+      {% include 'footer.html' %}
+    </div></div>
   </div>
+  {# body_script includes addtoany/cookie banners; omit for payments page #}
 </body>
 </html>
-

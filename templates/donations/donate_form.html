@@ -41,7 +41,16 @@
       // 80G toggle
       const chk = document.getElementById('need80g');
       const addr = document.getElementById('addr');
-      function updateAddr(){ addr.style.display = chk.checked ? 'block' : 'none'; }
+      function updateAddr(){
+        const isOn = chk.checked;
+        addr.style.display = isOn ? 'block' : 'none';
+        // Toggle required on 80G fields
+        const reqNames = ['address_line1','city','state','postal_code','country'];
+        reqNames.forEach(function(name){
+          const el = addr.querySelector('[name=\"'+name+'\"]');
+          if (el) el.required = isOn;
+        });
+      }
       chk.addEventListener('change', updateAddr); updateAddr();
     }
     document.addEventListener('DOMContentLoaded', onReady);
@@ -58,7 +67,7 @@
       {% csrf_token %}
       <div class="row"><label>Full name</label><input name="name" placeholder="Full name" required /></div>
       <div class="row"><label>Email</label><input name="email" type="email" placeholder="you@example.com" required /></div>
-      <div class="row"><label>Phone</label><input name="phone" placeholder="+91XXXXXXXXXX" required /></div>
+      <div class="row"><label>Phone</label><input name="phone" type="tel" inputmode="numeric" pattern="(\\+?91[- ]?)?\\d{10}" title="Enter 10-digit mobile number (optionally with +91)" placeholder="10-digit mobile number" required /></div>
       <div class="row">
         <label>Amount (₹)</label>
         <div>

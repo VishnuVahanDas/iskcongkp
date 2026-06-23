@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nitya Seva — Theme Picker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, Arial, sans-serif; background: #f3f4f6; padding: 2rem 1rem; }
+  h1 { text-align: center; font-size: 1.5rem; color: #111; margin-bottom: .3rem; }
+  .note { text-align: center; color: #6b7280; font-size: .88rem; margin-bottom: 2.5rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1.75rem; max-width: 1200px; margin: 0 auto; }
+
+  .block { border-radius: 16px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,.12); background: #fff; }
+  .label { text-align: center; font-weight: 700; font-size: .95rem; padding: .65rem 1rem; background: #fff; color: #111; border-bottom: 1px solid #e5e7eb; }
+
+  .hero { padding: 1.4rem 1.2rem 1.1rem; text-align: center; }
+  .hero .verse { font-style: italic; font-size: .8rem; line-height: 1.75; margin-bottom: .25rem; }
+  .hero .ref   { font-size: .7rem; margin-bottom: .85rem; opacity: .75; }
+  .hero h2     { font-size: 1.45rem; font-weight: 700; margin-bottom: .35rem; }
+  .hero p      { font-size: .78rem; opacity: .85; max-width: 260px; margin: 0 auto; line-height: 1.5; }
+
+  .card-wrap { padding: .9rem 1.1rem; }
+  .card { border: 2px solid #e5e7eb; border-radius: 10px; padding: .9rem; background: #fff; }
+  .card .tier  { font-weight: 700; font-size: .95rem; margin-bottom: .2rem; }
+  .card .price { font-size: 1.25rem; font-weight: 700; margin-bottom: .4rem; }
+  .card .price small { font-size: .78rem; font-weight: 400; color: #6b7280; }
+  .card .ben   { font-size: .76rem; color: #555; line-height: 1.7; }
+  .card .ben::before { content: "✦ "; }
+
+  .btn-row { padding: .6rem 1.1rem 1.1rem; }
+  .btn {
+    display: block; width: 100%; padding: .68rem;
+    border: none; border-radius: 8px; font-size: .93rem;
+    font-weight: 600; cursor: pointer;
+  }
+
+  /* ── Current ── */
+  .t0 .hero        { background: linear-gradient(150deg,#1a1a2e,#16213e,#0f3460); color:#fff; }
+  .t0 .hero .verse { color:#d4af37; }
+  .t0 .hero h2     { color:#f4c430; }
+  .t0 .card-wrap   { background:#f8f9fa; }
+  .t0 .card .price { color:#d4af37; }
+  .t0 .btn         { background:#1a1a2e; color:#fff; }
+
+  /* ── 1 Saffron ── */
+  .t1 .hero        { background: linear-gradient(150deg,#7c2d12,#9a3412,#c2410c); color:#fff; }
+  .t1 .hero .verse { color:#fbbf24; }
+  .t1 .hero h2     { color:#fef3c7; }
+  .t1 .card-wrap   { background:#fff7ed; }
+  .t1 .card .price { color:#c2410c; }
+  .t1 .btn         { background:#7c2d12; color:#fff; }
+
+  /* ── 2 Vrindavan ── */
+  .t2 .hero        { background: linear-gradient(150deg,#14532d,#166534,#15803d); color:#fff; }
+  .t2 .hero .verse { color:#d4af37; }
+  .t2 .hero h2     { color:#d4af37; }
+  .t2 .card-wrap   { background:#f0fdf4; }
+  .t2 .card .price { color:#15803d; }
+  .t2 .btn         { background:#14532d; color:#fff; }
+
+  /* ── 3 Krishna Blue ── */
+  .t3 .hero        { background: linear-gradient(150deg,#172554,#1e3a8a,#1d4ed8); color:#fff; }
+  .t3 .hero .verse { color:#fbbf24; }
+  .t3 .hero h2     { color:#fbbf24; }
+  .t3 .card-wrap   { background:#eff6ff; }
+  .t3 .card .price { color:#1d4ed8; }
+  .t3 .btn         { background:#172554; color:#fff; }
+
+  /* ── 4 Lotus Maroon ── */
+  .t4 .hero        { background: linear-gradient(150deg,#4a0e2a,#6b1a3a,#9d1b4f); color:#fff; }
+  .t4 .hero .verse { color:#f9a825; }
+  .t4 .hero h2     { color:#f9a825; }
+  .t4 .card-wrap   { background:#fff0f6; }
+  .t4 .card .price { color:#9d1b4f; }
+  .t4 .btn         { background:#4a0e2a; color:#fff; }
+
+  /* ── 5 Sandstone ── */
+  .t5 .hero        { background: linear-gradient(150deg,#292524,#44403c,#57534e); color:#fff; }
+  .t5 .hero .verse { color:#d97706; }
+  .t5 .hero h2     { color:#fef3c7; }
+  .t5 .card-wrap   { background:#fafaf9; }
+  .t5 .card .price { color:#b45309; }
+  .t5 .btn         { background:#292524; color:#fff; }
+</style>
+</head>
+<body>
+
+<h1>Nitya Seva — Colour Theme Options</h1>
+<p class="note">Open this file in your browser. Tell me which number you like and I will apply it.</p>
+
+<div class="grid">
+
+  <!-- CURRENT -->
+  <div class="block t0">
+    <div class="label">⭐ Current — Dark Navy &amp; Gold</div>
+    <div class="hero">
+      <div class="verse">abhyāse 'py asamartho 'si<br>mat-karma-paramo bhava</div>
+      <div class="ref">— Bhagavad Gita 12.10</div>
+      <h2>Nitya Seva</h2>
+      <p>Sustain daily worship &amp; prasadam at ISKCON Gorakhpur every month.</p>
+    </div>
+    <div class="card-wrap">
+      <div class="card">
+        <div class="tier">🌿 Govardhan Sevak</div>
+        <div class="price">₹1,000 <small>/month</small></div>
+        <div class="ben">Birthday puja offerings for family</div>
+        <div class="ben">Rajbhog offerings to the Lordships</div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn">Enroll Now →</button></div>
+  </div>
+
+  <!-- 1 SAFFRON -->
+  <div class="block t1">
+    <div class="label">1 — Saffron &amp; Ivory</div>
+    <div class="hero">
+      <div class="verse">abhyāse 'py asamartho 'si<br>mat-karma-paramo bhava</div>
+      <div class="ref">— Bhagavad Gita 12.10</div>
+      <h2>Nitya Seva</h2>
+      <p>Sustain daily worship &amp; prasadam at ISKCON Gorakhpur every month.</p>
+    </div>
+    <div class="card-wrap">
+      <div class="card">
+        <div class="tier">🌿 Govardhan Sevak</div>
+        <div class="price">₹1,000 <small>/month</small></div>
+        <div class="ben">Birthday puja offerings for family</div>
+        <div class="ben">Rajbhog offerings to the Lordships</div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn">Enroll Now →</button></div>
+  </div>
+
+  <!-- 2 VRINDAVAN -->
+  <div class="block t2">
+    <div class="label">2 — Vrindavan Forest</div>
+    <div class="hero">
+      <div class="verse">abhyāse 'py asamartho 'si<br>mat-karma-paramo bhava</div>
+      <div class="ref">— Bhagavad Gita 12.10</div>
+      <h2>Nitya Seva</h2>
+      <p>Sustain daily worship &amp; prasadam at ISKCON Gorakhpur every month.</p>
+    </div>
+    <div class="card-wrap">
+      <div class="card">
+        <div class="tier">🌿 Govardhan Sevak</div>
+        <div class="price">₹1,000 <small>/month</small></div>
+        <div class="ben">Birthday puja offerings for family</div>
+        <div class="ben">Rajbhog offerings to the Lordships</div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn">Enroll Now →</button></div>
+  </div>
+
+  <!-- 3 KRISHNA BLUE -->
+  <div class="block t3">
+    <div class="label">3 — Krishna Blue</div>
+    <div class="hero">
+      <div class="verse">abhyāse 'py asamartho 'si<br>mat-karma-paramo bhava</div>
+      <div class="ref">— Bhagavad Gita 12.10</div>
+      <h2>Nitya Seva</h2>
+      <p>Sustain daily worship &amp; prasadam at ISKCON Gorakhpur every month.</p>
+    </div>
+    <div class="card-wrap">
+      <div class="card">
+        <div class="tier">🌿 Govardhan Sevak</div>
+        <div class="price">₹1,000 <small>/month</small></div>
+        <div class="ben">Birthday puja offerings for family</div>
+        <div class="ben">Rajbhog offerings to the Lordships</div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn">Enroll Now →</button></div>
+  </div>
+
+  <!-- 4 LOTUS MAROON -->
+  <div class="block t4">
+    <div class="label">4 — Lotus Maroon</div>
+    <div class="hero">
+      <div class="verse">abhyāse 'py asamartho 'si<br>mat-karma-paramo bhava</div>
+      <div class="ref">— Bhagavad Gita 12.10</div>
+      <h2>Nitya Seva</h2>
+      <p>Sustain daily worship &amp; prasadam at ISKCON Gorakhpur every month.</p>
+    </div>
+    <div class="card-wrap">
+      <div class="card">
+        <div class="tier">🌿 Govardhan Sevak</div>
+        <div class="price">₹1,000 <small>/month</small></div>
+        <div class="ben">Birthday puja offerings for family</div>
+        <div class="ben">Rajbhog offerings to the Lordships</div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn">Enroll Now →</button></div>
+  </div>
+
+  <!-- 5 SANDSTONE -->
+  <div class="block t5">
+    <div class="label">5 — Sandstone &amp; Copper</div>
+    <div class="hero">
+      <div class="verse">abhyāse 'py asamartho 'si<br>mat-karma-paramo bhava</div>
+      <div class="ref">— Bhagavad Gita 12.10</div>
+      <h2>Nitya Seva</h2>
+      <p>Sustain daily worship &amp; prasadam at ISKCON Gorakhpur every month.</p>
+    </div>
+    <div class="card-wrap">
+      <div class="card">
+        <div class="tier">🌿 Govardhan Sevak</div>
+        <div class="price">₹1,000 <small>/month</small></div>
+        <div class="ben">Birthday puja offerings for family</div>
+        <div class="ben">Rajbhog offerings to the Lordships</div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn">Enroll Now →</button></div>
+  </div>
+
+</div>
+</body>
+</html>

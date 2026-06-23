@@ -115,7 +115,12 @@ def _payment(params, merchant_key, salt, env):
         return argument_validation
 
     # push merchant key into params dictionary.
-    params._mutable = True
+    # QueryDict has _mutable; plain dict does not.
+    try:
+        if hasattr(params, "_mutable"):
+            params._mutable = True
+    except Exception:
+        pass
     params['key'] = merchant_key
 
     # remove white space, htmlentities(converts characters to HTML entities), prepared postedArray
@@ -249,7 +254,12 @@ def _typeValidation(params):
     if not(isinstance(params['key'], str)):
         type_value = "Merchant Key should be string"
 
-    if not(isinstance(params['amount'], float)):
+    # amount can be float or numeric string with up to 2 decimals
+    amt = params.get('amount')
+    if isinstance(amt, str):
+        if not re.match(r"^\d+(\.\d{1,2})?$", amt.strip()):
+            type_value = "The amount should float up to two or one decimal."
+    elif not isinstance(amt, float):
         type_value = "The amount should float up to two or one decimal."
 
     if not(isinstance(params['productinfo'], str)):
@@ -723,5 +733,3 @@ def _getReverseHashKey(response_array, s_key):
             reverse_hash_string += ""
 
     return  sha512(reverse_hash_string.encode('utf-8')).hexdigest().lower()
-
-

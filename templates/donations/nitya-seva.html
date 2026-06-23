@@ -5,12 +5,273 @@
 <head>
     {% include 'head.html' %}
     <title>Nitya Seva | ISKCON Gorakhpur</title>
+    <style>
+        /* ── Section headings ── */
+        .ns-section-title {
+            text-align: center;
+            color: var(--t-text-dark);
+            font-size: 1.6rem;
+            margin: 2.5rem 0 .4rem;
+        }
+
+        .ns-section-sub {
+            text-align: center;
+            color: #6b7280;
+            font-size: .96rem;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Seva tier cards ── */
+        .ns-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .ns-card {
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 1.5rem 1.25rem;
+            width: 272px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+            transition: transform .18s, box-shadow .18s, border-color .18s;
+            cursor: pointer;
+        }
+
+        .ns-card:hover,
+        .ns-card:focus-within {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, .11);
+            border-color: var(--t-accent-border);
+            background: var(--t-accent-bg);
+        }
+
+        .ns-card .icon {
+            font-size: 2.2rem;
+            margin-bottom: .6rem;
+        }
+
+        .ns-card h3 {
+            color: var(--t-text-dark);
+            font-size: 1.15rem;
+            margin: 0 0 .3rem;
+        }
+
+        .ns-card .price {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--t-accent);
+            margin-bottom: .75rem;
+        }
+
+        .ns-card .price small {
+            font-size: .85rem;
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .ns-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 1rem;
+            font-size: .88rem;
+            color: #374151;
+            line-height: 1.7;
+        }
+
+        .ns-card ul li::before {
+            content: "✦ ";
+            color: var(--t-accent);
+        }
+
+        .ns-btn {
+            display: block;
+            width: 100%;
+            padding: .6rem;
+            background: var(--t-primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: .93rem;
+            font-weight: 500;
+            transition: background .18s, color .18s;
+        }
+
+        .ns-btn:hover {
+            background: var(--t-accent);
+            color: var(--t-primary);
+        }
+
+        /* ── Info / bank details box ── */
+        .ns-infobox {
+            background: var(--t-accent-bg);
+            border-left: 4px solid var(--t-accent-border);
+            border-radius: 0 10px 10px 0;
+            padding: 1.1rem 1.4rem;
+            margin: 2rem 0 2.5rem;
+            font-size: .93rem;
+            color: #374151;
+            line-height: 1.8;
+        }
+
+        .ns-infobox strong {
+            color: var(--t-text-dark);
+        }
+
+        /* ── Modal overlay ── */
+        .ns-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .55);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .ns-modal-overlay.open {
+            display: flex;
+        }
+
+        .ns-modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 460px;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, .28);
+            position: relative;
+        }
+
+        .ns-modal h2 {
+            margin: 0 0 .2rem;
+            color: var(--t-text-dark);
+            font-size: 1.3rem;
+        }
+
+        .ns-modal .modal-sub {
+            color: #6b7280;
+            font-size: .9rem;
+            margin-bottom: 1.3rem;
+        }
+
+        .ns-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #9ca3af;
+            line-height: 1;
+        }
+
+        .ns-modal-close:hover {
+            color: var(--t-text-dark);
+        }
+
+        /* ── Form inside modal ── */
+        .ns-field {
+            margin-bottom: 1rem;
+        }
+
+        .ns-field label {
+            display: block;
+            font-size: .88rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: .35rem;
+        }
+
+        .ns-field input {
+            width: 100%;
+            padding: .65rem .8rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: .97rem;
+            box-sizing: border-box;
+            transition: border-color .18s;
+        }
+
+        .ns-field input:focus {
+            outline: none;
+            border-color: var(--t-accent);
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, .15);
+        }
+
+        .ns-amount-badge {
+            background: var(--t-accent-bg);
+            border: 1.5px solid var(--t-accent-border);
+            border-radius: 8px;
+            padding: .65rem .9rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--t-text-dark);
+        }
+
+        .ns-badge {
+            background: var(--t-accent);
+            color: var(--t-primary);
+            font-size: .72rem;
+            padding: .18rem .5rem;
+            border-radius: 999px;
+            font-weight: 700;
+            margin-left: .4rem;
+            vertical-align: middle;
+        }
+
+        .ns-submit {
+            width: 100%;
+            padding: .82rem;
+            background: var(--t-primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.02rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: .5rem;
+            transition: background .18s, color .18s;
+        }
+
+        .ns-submit:hover {
+            background: var(--t-accent);
+            color: var(--t-primary);
+        }
+
+        .ns-disclaimer {
+            font-size: .78rem;
+            color: #9ca3af;
+            margin: .6rem 0 0;
+            text-align: center;
+        }
+
+        /* Hide AddToAny full-panel before JS init */
+        #a2apage_full,
+        .a2a_full {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+
+            .ns-card {
+                width: 100%;
+                max-width: 340px;
+            }
+        }
+    </style>
 </head>
 
 <body class="layout-no-sidebars page-node-148 path-node node--type-page">
-    <a href="#main-content" class="visually-hidden-focusable">
-        Skip to main content
-    </a>
+    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5RKQZD47" height="0" width="0"
             style="display:none;visibility:hidden"></iframe></noscript>
 
@@ -18,224 +279,605 @@
         <div id="page-wrapper">
             <div id="page">
                 {% include 'navbar.html' %}
-                <div class="highlighted">
-                    <aside class="container section clearfix" role="complementary">
-                        <div data-drupal-messages-fallback class="hidden"></div>
 
-
-                    </aside>
-                </div>
                 <div id="main-wrapper" class="layout-main-wrapper clearfix">
                     <div id="main" class="container">
-
                         <div class="row row-offcanvas row-offcanvas-left clearfix">
                             <main class="main-content col" id="content" role="main">
                                 <section class="section">
                                     <a href="#main-content" id="main-content" tabindex="-1"></a>
                                     <div id="block-akara-page-title" class="block block-core block-page-title-block">
 
-
                                         <div class="content">
 
                                             <h1 class="title"><span
                                                     class="field field--name-title field--type-string field--label-hidden">Nitya
-                                                    Seva</span>
+                                                    Sevas</span>
                                             </h1>
 
 
                                         </div>
                                     </div>
-                                    <div id="block-akara-content" class="block block-system block-system-main-block">
+                                    <blockquote>
+                                        <p>abhyāse ’py asamartho ’si <br />
+                                            mat-karma-paramo bhava <br />
+                                            mad-artham api karmāṇi <br />
+                                            kurvan siddhim avāpsyasi</p>
+                                    </blockquote>
+                                    <p>Every endeavor requires land, capital, organization and labor. Just as in
+                                        business one requires a place to stay, some capital to use, some labor and some
+                                        organization to expand, so the same is required in the service of Krsna. The
+                                        only difference is that in materialism one works for sense gratification. The
+                                        same work, however, can be performed for the satisfaction of Krsna, and that is
+                                        spiritual activity. If one has sufficient money, he can help in building an
+                                        office or temple for propagating Krsna consciousness. Or he can help with
+                                        publications. There are various fields of activity, and one should be interested
+                                        in such activities. If one cannot sacrifice the results of his activities, the
+                                        same person can still sacrifice some percentage to propagate Krsna
+                                        consciousness. This voluntary service to the cause of Krsna consciousness will
+                                        help one to rise to a higher state of love for God, whereupon one becomes
+                                        perfect.
+                                        (<a href="https://vedabase.io/en/library/bg/12/10/">Bhagavad
+                                            Gita 12:10</a>)</p>
+                                    <h2 class="ns-section-title">Choose Your Monthly Seva</h2>
+                                    <p class="ns-section-sub">Select the seva tier that resonates with your heart.
+                                        Each contribution sustains the Lord's service every day.</p>
 
+                                    <div class="ns-cards">
 
-                                        <div class="content">
-
-
-                                            <article data-history-node-id="39" role="article"
-                                                class="node node--type-page node--view-mode-full clearfix">
-                                                <header>
-
-
-                                                </header>
-                                                <div class="node__content clearfix">
-
-                                                    <div
-                                                        class="field field--name-field-banner field--type-entity-reference field--label-hidden field__item">
-                                                        <img srcset="/sites/default/files/styles/content_hero_banner_phone/public/2023-08/nitya_seva_border.png?itok=bXC9gU8l 576w, /sites/default/files/styles/content_hero_banner_tablet/public/2023-08/nitya_seva_border.png?itok=j49YNUTA 1280w, /sites/default/files/styles/content_hero_banner_desktop/public/2023-08/nitya_seva_border.png?itok=fqCbbRPE 1500w"
-                                                            sizes="(min-width:1500px) 1500px, 100vw"
-                                                            src="/sites/default/files/styles/content_hero_banner_phone/public/2023-08/nitya_seva_border.png?itok=bXC9gU8l"
-                                                            alt="NS" />
-
-
-                                                    </div>
-
-                                                    <div
-                                                        class="clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item">
-                                                        <blockquote>
-                                                            <p>abhyāse ’py asamartho ’si <br />mat-karma-paramo bhava
-                                                                <br />mad-artham api karmāṇi <br />kurvan siddhim
-                                                                avāpsyasi
-                                                            </p>
-                                                        </blockquote>
-                                                        <p>Every endeavor requires land, capital, organization and
-                                                            labor. Just as in business one requires a place to stay,
-                                                            some capital to use, some labor and some organization to
-                                                            expand, so the same is required in the service of Krsna. The
-                                                            only difference is that in materialism one works for sense
-                                                            gratification. The same work, however, can be performed for
-                                                            the satisfaction of Krsna, and that is spiritual activity.
-                                                            If one has sufficient money, he can help in building an
-                                                            office or temple for propagating Krsna consciousness. Or he
-                                                            can help with publications. There are various fields of
-                                                            activity, and one should be interested in such activities.
-                                                            If one cannot sacrifice the results of his activities, the
-                                                            same person can still sacrifice some percentage to propagate
-                                                            Krsna consciousness. This voluntary service to the cause of
-                                                            Krsna consciousness will help one to rise to a higher state
-                                                            of love for God, whereupon one becomes perfect.(<a
-                                                                href="https://vedabase.io/en/library/bg/12/10/">Bhagavad
-                                                                Gita 12:10</a>)</p>
-                                                        <div class="table-responsive">
-                                                            <table
-                                                                class="table table-striped table-hover table-bordered border border-1 border-dark-subtle">
-                                                                <thead class="table-dark">
-                                                                    <tr>
-                                                                        <th>Seva</th>
-                                                                        <th>Temple activity</th>
-                                                                        <th>Donation</th>
-                                                                        <th># Donate</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <tr>
-                                                                        <td>Govardhan Sevak</td>
-                                                                        <td>Birthday offerings on behalf of family
-                                                                            members to Lordships, Rajbhog
-                                                                            offerings/charan tulasi/special diety
-                                                                            paraphernalia/other transcendental gifts
-                                                                            delivery to home</td>
-                                                                        <td>1000 - 4000/-</td>
-                                                                        <td><a class="btn btn-primary btn-sm active"
-                                                                                href="https://pages.razorpay.com/nityasevasjm"
-                                                                                target="_blank">CLICK HERE TO DONATE</a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>Sudarshan Sevak</td>
-                                                                        <td>AllAbove + Discounts on courses(for 2 family
-                                                                            members)–idc, bhakti shastri etc</td>
-                                                                        <td>4001 - 7000/-</td>
-                                                                        <td><a class="btn btn-primary btn-sm active"
-                                                                                href="https://pages.razorpay.com/nityasevasjm"
-                                                                                target="_blank">CLICK HERE TO DONATE</a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>Subhadra Sevak</td>
-                                                                        <td>All Above + Free Matchless gifts + Govindas
-                                                                            coupon worth Rs 300/- every month.</td>
-                                                                        <td>7001 - 10000/-</td>
-                                                                        <td><a class="btn btn-primary btn-sm active"
-                                                                                href="https://pages.razorpay.com/nityasevasjm"
-                                                                                target="_blank">CLICK HERE TO DONATE</a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>Baladev Sevak</td>
-                                                                        <td>All Above + 50% discount on all courses +
-                                                                            Free festival Abhishekam coupons for 1
-                                                                            festival</td>
-                                                                        <td>10001 - 14000/-</td>
-                                                                        <td><a class="btn btn-primary btn-sm active"
-                                                                                href="https://pages.razorpay.com/nityasevasjm"
-                                                                                target="_blank">CLICK HERE TO DONATE</a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>Jagannath Sevak</td>
-                                                                        <td>All Above + 70% discount on all courses +
-                                                                            Free festival Abhishekam coupons for 3
-                                                                            festival</td>
-                                                                        <td>14001 - 20000/-</td>
-                                                                        <td><a class="btn btn-primary btn-sm active"
-                                                                                href="https://pages.razorpay.com/nityasevasjm"
-                                                                                target="_blank">CLICK HERE TO DONATE</a>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>Gaurangi Bangaloreswar Sevak</td>
-                                                                        <td>All Above + No course charge + Free festival
-                                                                            abhishekam coupons+ Choose any SP book/books
-                                                                            worth Rs 2000 every year</td>
-                                                                        <td>More then 20001/-</td>
-                                                                        <td><a class="btn btn-primary btn-sm active"
-                                                                                href="https://pages.razorpay.com/nityasesdvasjm"
-                                                                                target="_blank">CLICK HERE TO DONATE</a>
-                                                                        </td>
-                                                                    </tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                        <div class="col-xs-12 col-sm-12 col-md-12"
-                                                            style="display:flex;flex-wrap:wrap;text-align:center;">
-                                                            <div class="col-xs-12 col-sm-12 col-md-12"
-                                                                style="margin:0 auto;">
-                                                                <p><strong>Please contribute your donation by</strong>
-                                                                </p>
-                                                            </div>
-                                                            <div class="col-xs-12 col-sm-12 col-md-12">
-                                                                <p><a class="btn btn-primary btn-sm active"
-                                                                        href="{% url 'donations:donate_form' %}?purpose=Nitya%20Seva">CLICK HERE TO DONATE</a></p>
-                                                                <p>International Society for Krishna Consciousness
-                                                                    <br />ISKCON Gorakhpur <br />Account name:
-                                                                    ISKCON <br />Account number: 50100662519656
-                                                                    <br />IFSC: HDFC0004217 <br />Bank: HDFC BANK
-                                                                    <br />BRANCH: Taramandal</p>
-                                                                <p>For more details contact <a
-                                                                        href="tel:+919170572937">9170572937</a>, <a
-                                                                        href="tel:+917880964086">7880964086</a></p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-
-                                                    <span class="a2a_kit a2a_kit_size_32 addtoany_list"
-                                                        data-a2a-url="https://iskconbangalore.co.in/donation/nitya-seva"
-                                                        data-a2a-title="Nitya Seva"><a
-                                                            class="a2a_button_facebook"></a><a
-                                                            class="a2a_button_whatsapp"></a><a
-                                                            class="a2a_button_email"></a><a
-                                                            class="a2a_dd addtoany_share"
-                                                            href="https://www.addtoany.com/share#url=https%3A%2F%2Fiskconbangalore.co.in%2Fdonation%2Fnitya-seva&amp;title=Nitya%20Seva"></a></span>
-                                                </div>
-                                            </article>
-
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Radharani Nitya Seva" data-seva-amount="10000">
+                                            <div class="icon">🌹</div>
+                                            <h3>Radharani Nitya Seva</h3>
+                                            <div class="price">₹10,000 <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
                                         </div>
-                                    </div>
 
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Gauranga Mahaprabhu Nitya Seva" data-seva-amount="5100">
+                                            <div class="icon">🌟</div>
+                                            <h3>Gauranga Mahaprabhu Nitya Seva</h3>
+                                            <div class="price">₹5,100 <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
+                                        </div>
+
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Nityananda Mahaprabhu Nitya Seva" data-seva-amount="4100">
+                                            <div class="icon">✨</div>
+                                            <h3>Nityananda Mahaprabhu Nitya Seva</h3>
+                                            <div class="price">₹4,100 <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
+                                        </div>
+
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Vaishnava Nitya Seva" data-seva-amount="3100">
+                                            <div class="icon">🪷</div>
+                                            <h3>Vaishnava Nitya Seva</h3>
+                                            <div class="price">₹3,100 <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
+                                        </div>
+
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Ekadashi Nitya Seva" data-seva-amount="2100">
+                                            <div class="icon">🌙</div>
+                                            <h3>Ekadashi Nitya Seva</h3>
+                                            <div class="price">₹2,100 <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
+                                        </div>
+
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Tulasi Maharani Nitya Seva" data-seva-amount="1100">
+                                            <div class="icon">🌿</div>
+                                            <h3>Tulasi Maharani Nitya Seva</h3>
+                                            <div class="price">₹1,100 <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
+                                        </div>
+
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Srila Prabhupada Nitya Seva" data-seva-amount="501">
+                                            <div class="icon">📿</div>
+                                            <h3>Srila Prabhupada Nitya Seva</h3>
+                                            <div class="price">₹501 <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
+                                        </div>
+
+                                        <div class="ns-card" tabindex="0"
+                                            data-seva-name="Nitya Seva" data-seva-amount="any">
+                                            <div class="icon">🙏</div>
+                                            <h3>Any Amount Nitya Seva</h3>
+                                            <div class="price">Your Choice <small>/month</small></div>
+                                            <button class="ns-btn" type="button">Enroll Now →</button>
+                                        </div>
+
+                                    </div><!-- /.ns-cards -->
+
+                                    <!-- AddToAny initialiser (hidden) — prevents a2apage_full from rendering after footer -->
+                                    <span class="a2a_kit addtoany_list"
+                                        data-a2a-url="https://iskcongorakhpur.com/donations/nitya-seva"
+                                        data-a2a-title="Nitya Seva" style="display:none"></span>
+
+                                    <div class="ns-infobox">
+                                        <strong>Tax Benefit:</strong> All donations qualify for 80G tax exemption.
+                                        A receipt is emailed after each payment. Tick the 80G option in the form to
+                                        provide your address.<br><br>
+                                        <strong>Bank Transfer:</strong><br>
+                                        International Society for Krishna Consciousness — ISKCON Gorakhpur<br>
+                                        Account No: <strong>50100662519656</strong> &nbsp;·&nbsp;
+                                        IFSC: <strong>HDFC0004217</strong> &nbsp;·&nbsp;
+                                        HDFC Bank, Taramandal Branch<br><br>
+                                        <strong>Contact:</strong>
+                                        <a href="tel:+919170572937">9170572937</a> &nbsp;|&nbsp;
+                                        <a href="tel:+917880964086">7880964086</a>
+                                    </div>
 
                                 </section>
                             </main>
                         </div>
                     </div>
                 </div>
+
                 {% include 'footer.html' %}
             </div>
         </div>
-
     </div>
+
+    <!-- EaseBuzz checkout SDK -->
+    <script src="https://ebz-static.s3.ap-south-1.amazonaws.com/easecheckout/v2.0.0/easebuzz-checkout-v2.min.js"></script>
+
+    <!-- ── Enrollment Modal ── -->
+    <div class="ns-modal-overlay" id="sevaModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="ns-modal">
+            <button class="ns-modal-close" onclick="closeSevaModal()" aria-label="Close">&times;</button>
+            <h2 id="modalTitle">Enroll in Nitya Seva</h2>
+            <p class="modal-sub" id="modalSubtitle">Monthly contribution to the Lord's service</p>
+
+            <!-- STEP 1: Donation Form -->
+            <div id="sevaFormWrap">
+                <form id="sevaForm" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="amount" id="modalAmount" value="1000" />
+
+                    <div class="ns-field">
+                        <label>Monthly Contribution</label>
+                        <div class="ns-amount-badge" id="amountBadge">
+                            ₹<span id="amountDisplay">1,000</span>
+                            <span class="ns-badge">MONTHLY</span>
+                        </div>
+                        <div id="amountInputWrap" style="display:none;">
+                            <input type="number" id="amountCustom" min="1" placeholder="Enter amount (₹)"
+                                style="width:100%;padding:.5rem .75rem;border:1px solid #d1d5db;border-radius:8px;font-size:1rem;"
+                                oninput="document.getElementById('modalAmount').value=this.value" />
+                        </div>
+                    </div>
+
+                    <div class="ns-field">
+                        <label for="ns_name">Full Name <span style="color:#ef4444">*</span></label>
+                        <input type="text" name="name" id="ns_name" placeholder="Your full name"
+                            autocomplete="name" />
+                        <div class="ns-field-error" id="err_name"></div>
+                    </div>
+
+                    <div class="ns-field">
+                        <label for="ns_phone">Mobile Number <span style="color:#ef4444">*</span></label>
+                        <input type="tel" name="phone" id="ns_phone" placeholder="10-digit mobile number"
+                            inputmode="numeric" maxlength="13" autocomplete="tel" />
+                        <div class="ns-field-error" id="err_phone"></div>
+                    </div>
+
+                    <div class="ns-field">
+                        <label for="ns_email">Email Address</label>
+                        <input type="email" name="email" id="ns_email" placeholder="you@example.com"
+                            autocomplete="email" />
+                        <div class="ns-field-error" id="err_email"></div>
+                    </div>
+
+                    <div class="ns-field">
+                        <label for="ns_seva_type">Seva Type <span style="color:#ef4444">*</span></label>
+                        <select name="seva_type" id="ns_seva_type"
+                            style="width:100%;padding:.65rem .8rem;border:1px solid #d1d5db;border-radius:8px;font-size:.97rem;box-sizing:border-box;background:#fff;">
+                            <option value="">— Select Seva Type —</option>
+                            <option value="Radharani Nitya Seva">Radharani Nitya Seva</option>
+                            <option value="Gauranga Mahaprabhu Nitya Seva">Gauranga Mahaprabhu Nitya Seva</option>
+                            <option value="Nityananda Mahaprabhu Nitya Seva">Nityananda Mahaprabhu Nitya Seva</option>
+                            <option value="Vaishnava Nitya Seva">Vaishnava Nitya Seva</option>
+                            <option value="Ekadashi Nitya Seva">Ekadashi Nitya Seva</option>
+                            <option value="Tulasi Maharani Nitya Seva">Tulasi Maharani Nitya Seva</option>
+                            <option value="Srila Prabhupada Nitya Seva">Srila Prabhupada Nitya Seva</option>
+                            <option value="Nitya Seva">Any Amount Nitya Seva</option>
+                        </select>
+                        <div class="ns-field-error" id="err_seva_type"></div>
+                    </div>
+
+                    <div class="ns-field">
+                        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-weight:400;">
+                            <input type="checkbox" name="wants_80g" id="ns_80g" style="width:auto;margin:0;"
+                                onchange="toggle80G(this)" />
+                            I want an 80G tax exemption certificate
+                        </label>
+                    </div>
+
+                    <div id="ns80gFields" style="display:none;overflow:hidden;transition:max-height .3s ease;">
+                        <div class="ns-field">
+                            <label>PAN Number <span style="color:#ef4444">*</span></label>
+                            <input type="text" name="pan_number" id="ns_pan" placeholder="ABCDE1234F"
+                                maxlength="10" style="text-transform:uppercase;" />
+                            <div class="ns-field-error" id="err_pan_number"></div>
+                        </div>
+                        <div class="ns-field">
+                            <label>Address Line 1 <span style="color:#ef4444">*</span></label>
+                            <input type="text" name="address_line1" id="ns_addr" placeholder="House / Street / Locality" />
+                            <div class="ns-field-error" id="err_address_line1"></div>
+                        </div>
+                        <div class="ns-field">
+                            <label>City <span style="color:#ef4444">*</span></label>
+                            <input type="text" name="city" id="ns_city" placeholder="City" />
+                            <div class="ns-field-error" id="err_city"></div>
+                        </div>
+                        <div class="ns-field">
+                            <label>Pincode <span style="color:#ef4444">*</span></label>
+                            <input type="text" name="pincode" id="ns_pincode" placeholder="6-digit PIN code"
+                                inputmode="numeric" maxlength="6" />
+                            <div class="ns-field-error" id="err_pincode"></div>
+                        </div>
+                    </div>
+
+                    <div class="ns-field">
+                        <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;font-weight:400;font-size:.85rem;color:#374151;line-height:1.5;">
+                            <input type="checkbox" id="ns_consent" style="width:auto;margin:.15rem 0 0;flex-shrink:0;" />
+                            I authorize the temple to automatically deduct my monthly
+                            seva amount. I consent to be contacted for seva-related updates.
+                        </label>
+                    </div>
+
+                    <div class="ns-field-error" id="err_global"
+                        style="margin-bottom:.5rem;text-align:center;"></div>
+                    <p class="ns-disclaimer">
+                        EaseBuzz will auto-debit ₹<span id="disclaimerAmount">—</span> from your UPI-linked account
+                        every month. You will receive a notification 48 hours before each debit.
+                        Cancel anytime from your UPI app under Manage Mandates.
+                    </p>
+                    <button type="submit" class="ns-submit" id="sevaSubmitBtn">
+                        Begin Nitya Seva
+                    </button>
+                </form>
+            </div>
+
+            <!-- STEP 2: Mandate status (shown after EaseBuzz checkout closes) -->
+            <div id="sevaResultWrap" style="display:none;">
+                <div style="text-align:center;margin-bottom:1.25rem;">
+                    <div style="font-size:2.2rem;" id="res_icon">⏳</div>
+                    <h3 style="margin:.4rem 0 .2rem;color:var(--t-text-dark);">
+                        Hare Krishna, <span id="res_name"></span>!
+                    </h3>
+                    <p style="color:#6b7280;font-size:.92rem;margin:0;" id="res_subtitle">
+                        Confirming your mandate with EaseBuzz&hellip;
+                    </p>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:.93rem;margin-bottom:1.1rem;">
+                    <tr><td style="padding:.35rem 0;color:#6b7280;">Seva</td>
+                        <td style="padding:.35rem 0;font-weight:600;text-align:right;" id="res_seva"></td></tr>
+                    <tr><td style="padding:.35rem 0;color:#6b7280;">Amount</td>
+                        <td style="padding:.35rem 0;font-weight:700;color:var(--t-accent);text-align:right;" id="res_amount"></td></tr>
+                    <tr><td style="padding:.35rem 0;color:#6b7280;">UPI AutoPay</td>
+                        <td style="padding:.35rem 0;font-weight:600;color:#854d0e;text-align:right;" id="res_mandate_cell">Confirming&hellip;</td></tr>
+                </table>
+                <!-- shown only once mandate is confirmed active -->
+                <div id="res_info_box" style="background:#f0fdf4;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.85rem;color:#166534;display:none;">
+                    EaseBuzz will automatically deduct your monthly seva amount from your UPI-linked account.
+                    You will receive a notification 48 hours before each debit.
+                    You can cancel this mandate anytime from your UPI app under <strong>Manage Mandates / AutoPay</strong>.
+                </div>
+                <div id="res_status_msg"
+                    style="text-align:center;padding:.6rem;border-radius:8px;margin-bottom:1rem;font-size:.9rem;background:#fefce8;color:#854d0e;">
+                    Confirming mandate with UPI&hellip; Please wait.
+                </div>
+                <button class="ns-submit" id="sevaCheckBtn" onclick="checkMandateStatus()" type="button"
+                    style="display:none;">
+                    Check Status
+                </button>
+                <button class="ns-submit" id="srevaTryAgainBtn" onclick="resetToForm()" type="button"
+                    style="display:none;background:#6b7280;margin-top:.5rem;">
+                    Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+
     {% include 'body_script.html' %}
+    <style>
+        .ns-field-error { color: #dc2626; font-size: .78rem; margin-top: .25rem; min-height: 1rem; }
+        .ns-field input.ns-invalid,
+        .ns-field select.ns-invalid { border-color: #dc2626 !important; }
+    </style>
     <script>
-      (function(){
-        const PURPOSE_PREFIX='Nitya Seva';
-        function go(amount,label){
-          const amt = Math.max(1, Math.round(Number(amount)||0));
-          const purpose = PURPOSE_PREFIX + (label ? (' - ' + label) : '');
-          const url = `{% url 'donations:donate_form' %}?purpose=${encodeURIComponent(purpose)}&amount=${encodeURIComponent(amt)}`;
-          window.location.href = url;
-        }
-        document.addEventListener('DOMContentLoaded', function(){ document.querySelectorAll('a[href*="seva_amount="]').forEach(function(a){ a.addEventListener('click', function(ev){ try{ const u=new URL(a.href, window.location.origin); const amount=u.searchParams.get('seva_amount')||''; const label=decodeURIComponent(u.searchParams.get('seva_name')||''); if(amount){ ev.preventDefault(); go(amount,label); } }catch(e){} }); }); });
-      })();
+        (function () {
+            var _txnid    = '';
+            var _pollTimer = null;
+            var EASEBUZZ_KEY = '{{ EASEBUZZ_KEY|default:"" }}';
+            var EASEBUZZ_ENV = '{{ EASEBUZZ_ENV|default:"test" }}';
+
+            function openSevaModal(tierName, amount) {
+                var isAny = (amount === 'any');
+                document.getElementById('modalTitle').textContent = tierName;
+                document.getElementById('modalSubtitle').textContent = 'Monthly Nitya Seva — ' + tierName;
+                var sel = document.getElementById('ns_seva_type');
+                for (var i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === tierName) { sel.selectedIndex = i; break; }
+                }
+                document.getElementById('amountBadge').style.display = isAny ? 'none' : '';
+                document.getElementById('amountInputWrap').style.display = isAny ? 'block' : 'none';
+                if (isAny) {
+                    document.getElementById('amountCustom').value = '';
+                    document.getElementById('modalAmount').value = '';
+                    document.getElementById('disclaimerAmount').textContent = '—';
+                } else {
+                    document.getElementById('modalAmount').value = amount;
+                    document.getElementById('amountDisplay').textContent = Number(amount).toLocaleString('en-IN');
+                    document.getElementById('disclaimerAmount').textContent = Number(amount).toLocaleString('en-IN');
+                }
+                document.getElementById('sevaFormWrap').style.display = '';
+                document.getElementById('sevaResultWrap').style.display = 'none';
+                clearErrors();
+                document.getElementById('sevaModal').classList.add('open');
+                document.body.style.overflow = 'hidden';
+                setTimeout(function () { document.getElementById('ns_name').focus(); }, 80);
+            }
+
+            function closeSevaModal() {
+                if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+                document.getElementById('sevaModal').classList.remove('open');
+                document.body.style.overflow = '';
+            }
+
+            function toggle80G(checkbox) {
+                var fields = document.getElementById('ns80gFields');
+                fields.style.display = checkbox.checked ? 'block' : 'none';
+                ['pan_number', 'address_line1', 'city', 'pincode'].forEach(function (n) {
+                    var el = fields.querySelector('[name="' + n + '"]');
+                    if (el) { el.required = checkbox.checked; }
+                });
+            }
+
+            function clearErrors() {
+                document.querySelectorAll('.ns-field-error').forEach(function (el) { el.textContent = ''; });
+                document.querySelectorAll('.ns-invalid').forEach(function (el) { el.classList.remove('ns-invalid'); });
+            }
+
+            function showError(field, msg) {
+                var errEl = document.getElementById('err_' + field);
+                if (errEl) { errEl.textContent = msg; }
+                var inputEl = document.querySelector('[name="' + field + '"]');
+                if (inputEl) { inputEl.classList.add('ns-invalid'); }
+            }
+
+            function getCsrf() {
+                var el = document.querySelector('[name=csrfmiddlewaretoken]');
+                return el ? el.value : '';
+            }
+
+            function _setStatus(icon, subtitle, mandateCell, mandateCellColor,
+                                msgBg, msgColor, msgText, showInfoBox, showCheckBtn) {
+                document.getElementById('res_icon').textContent           = icon;
+                document.getElementById('res_subtitle').textContent       = subtitle;
+                document.getElementById('res_mandate_cell').textContent   = mandateCell;
+                document.getElementById('res_mandate_cell').style.color   = mandateCellColor;
+                var msgEl = document.getElementById('res_status_msg');
+                msgEl.style.background  = msgBg;
+                msgEl.style.color       = msgColor;
+                msgEl.textContent       = msgText;
+                document.getElementById('res_info_box').style.display  = showInfoBox  ? '' : 'none';
+                document.getElementById('sevaCheckBtn').style.display  = showCheckBtn ? '' : 'none';
+            }
+
+            function showMandateConfirmation(d) {
+                document.getElementById('res_name').textContent   = d.full_name  || '';
+                document.getElementById('res_seva').textContent   = d.seva_type  || '';
+                document.getElementById('res_amount').textContent = '₹ ' + Number(d.amount).toLocaleString('en-IN') + ' / month';
+                document.getElementById('sevaFormWrap').style.display  = 'none';
+                document.getElementById('sevaResultWrap').style.display = '';
+
+                // Neutral "confirming" state — EaseBuzz calls success_url server-to-server
+                // AFTER onResponse fires; DB may not yet reflect the outcome.
+                _setStatus('⏳', 'Confirming your mandate with EaseBuzz\u2026',
+                           'Confirming\u2026', '#854d0e',
+                           '#fefce8', '#854d0e', 'Confirming mandate with UPI\u2026 Please wait.',
+                           false, false);
+
+                // Poll every 5 s; upgrade when DB confirms outcome.
+                var polls = 0;
+                var MAX_POLLS = 36; // 3 minutes
+                _pollTimer = setInterval(function () {
+                    polls++;
+                    if (polls > MAX_POLLS) {
+                        clearInterval(_pollTimer); _pollTimer = null;
+                        // Timed out — only update if still in the ⏳ pending state.
+                        var icon = document.getElementById('res_icon').textContent;
+                        if (icon === '\u23f3') {
+                            _setStatus('\u26a0\ufe0f', 'Mandate not confirmed yet.',
+                                       'Not confirmed', '#92400e',
+                                       '#fef3c7', '#92400e',
+                                       'We have not received confirmation from EaseBuzz. '
+                                       + 'If you approved in your UPI app, tap \u201cCheck Again\u201d. '
+                                       + 'Otherwise tap \u201cTry Again\u201d.',
+                                       false, false);
+                            document.getElementById('sevaCheckBtn').style.display = '';
+                            document.getElementById('sevaCheckBtn').textContent = 'Check Again';
+                            document.getElementById('srevaTryAgainBtn').style.display = '';
+                        }
+                    }
+                    checkMandateStatus();
+                }, 5000);
+            }
+
+            document.getElementById('sevaForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                clearErrors();
+
+                var consentEl = document.getElementById('ns_consent');
+                if (!consentEl.checked) {
+                    document.getElementById('err_global').textContent =
+                        'Please check the authorization checkbox to proceed.';
+                    return;
+                }
+
+                var form = document.getElementById('sevaForm');
+                var body = new FormData(form);
+                body.set('amount', document.getElementById('modalAmount').value);
+
+                var btn = document.getElementById('sevaSubmitBtn');
+                btn.disabled    = true;
+                btn.textContent = 'Processing…';
+
+                fetch("{% url 'donations:nitya_seva_initiate' %}", {
+                    method:  'POST',
+                    headers: { 'X-CSRFToken': getCsrf() },
+                    body:    body,
+                })
+                .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+                .then(function (result) {
+                    btn.disabled    = false;
+                    btn.textContent = 'Begin Nitya Seva';
+
+                    if (!result.ok) {
+                        var errs = result.data.errors || {};
+                        var hasFieldError = false;
+                        Object.keys(errs).forEach(function (k) {
+                            showError(k, Array.isArray(errs[k]) ? errs[k][0] : errs[k]);
+                            hasFieldError = true;
+                        });
+                        if (!hasFieldError) {
+                            document.getElementById('err_global').textContent =
+                                result.data.error || 'Something went wrong. Please try again.';
+                        }
+                        return;
+                    }
+
+                    var d = result.data;
+                    _txnid = d.txnid;
+
+                    var easebuzzCheckout = new EasebuzzCheckout(EASEBUZZ_KEY, EASEBUZZ_ENV);
+                    var options = {
+                        access_key: d.access_key,
+                        onResponse: function (response) {
+                            console.log('[AutoPay] onResponse:', JSON.stringify(response));
+                            // Always show the confirmation screen.
+                            // DB polling every 5 s will resolve the actual outcome.
+                            showMandateConfirmation(d);
+                        },
+                    };
+                    easebuzzCheckout.initiatePayment(options);
+                })
+                .catch(function () {
+                    btn.disabled    = false;
+                    btn.textContent = 'Begin Nitya Seva';
+                    document.getElementById('err_global').textContent =
+                        'Network error. Please check your connection and try again.';
+                });
+            });
+
+            function checkMandateStatus() {
+                if (!_txnid) return;
+                var btn = document.getElementById('sevaCheckBtn');
+                var prevText = btn.textContent;
+                if (btn.style.display !== 'none') {
+                    btn.textContent = 'Checking\u2026';
+                    btn.disabled = true;
+                }
+                fetch("{% url 'donations:nitya_seva_status' txnid='PLACEHOLDER' %}".replace('PLACEHOLDER', _txnid))
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var mandateStatus = (d.mandate_status || '').toLowerCase();
+                    if (mandateStatus === 'active') {
+                        // ✅ DB confirmed active.
+                        _setStatus('\u2705', 'Your Nitya Seva UPI AutoPay mandate is confirmed.',
+                                   'Active \u2705', '#166534',
+                                   '#f0fdf4', '#166534',
+                                   'Mandate active. Monthly UPI AutoPay is confirmed.',
+                                   true, false);
+                        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+                    } else if (mandateStatus === 'failed' || mandateStatus === 'cancelled') {
+                        // ❌ DB confirmed failure.
+                        var label = mandateStatus.charAt(0).toUpperCase() + mandateStatus.slice(1);
+                        _setStatus('\u274c', 'Mandate could not be activated.',
+                                   label + ' \u274c', '#991b1b',
+                                   '#fef2f2', '#991b1b',
+                                   'Mandate ' + mandateStatus + '. You may close this and try again.',
+                                   false, false);
+                        document.getElementById('sevaCheckBtn').style.display = 'none';
+                        document.getElementById('srevaTryAgainBtn').style.display = '';
+                        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+                    } else if (mandateStatus === 'expired') {
+                        // ⏳ Still pending after 10 min — likely cancelled/abandoned.
+                        _setStatus('\u26a0\ufe0f', 'Mandate not confirmed yet.',
+                                   'Not confirmed', '#92400e',
+                                   '#fef3c7', '#92400e',
+                                   'We have not received confirmation from EaseBuzz. '
+                                   + 'If you approved the mandate in your UPI app, '
+                                   + 'it may arrive soon. Otherwise you may try again.',
+                                   false, false);
+                        document.getElementById('sevaCheckBtn').style.display = '';
+                        document.getElementById('sevaCheckBtn').textContent = 'Check Again';
+                        document.getElementById('sevaCheckBtn').disabled = false;
+                        document.getElementById('srevaTryAgainBtn').style.display = '';
+                        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+                    } else {
+                        // Still pending — re-enable button so user can check again manually.
+                        if (btn.style.display !== 'none') {
+                            btn.textContent = prevText;
+                            btn.disabled = false;
+                        }
+                        var msgEl = document.getElementById('res_status_msg');
+                        msgEl.textContent = 'Still confirming with EaseBuzz\u2026 '
+                            + 'If you approved in your UPI app, please wait a moment.';
+                    }
+                })
+                .catch(function () {
+                    if (btn.style.display !== 'none') {
+                        btn.textContent = prevText;
+                        btn.disabled = false;
+                    }
+                });
+            }
+
+            function resetToForm() {
+                if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+                _txnid = '';
+                document.getElementById('sevaResultWrap').style.display = 'none';
+                document.getElementById('sevaFormWrap').style.display   = '';
+                document.getElementById('err_global').textContent = '';
+                document.getElementById('srevaTryAgainBtn').style.display = 'none';
+            }
+
+            document.querySelectorAll('.ns-card').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    openSevaModal(card.dataset.sevaName, card.dataset.sevaAmount);
+                });
+                card.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') { openSevaModal(card.dataset.sevaName, card.dataset.sevaAmount); }
+                });
+            });
+
+            document.getElementById('sevaModal').addEventListener('click', function (e) {
+                if (e.target === this) { closeSevaModal(); }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { closeSevaModal(); }
+            });
+
+            var customAmountEl = document.getElementById('amountCustom');
+            if (customAmountEl) {
+                customAmountEl.addEventListener('input', function () {
+                    var v = this.value;
+                    document.getElementById('disclaimerAmount').textContent = v ? Number(v).toLocaleString('en-IN') : '—';
+                });
+            }
+
+            window.openSevaModal      = openSevaModal;
+            window.closeSevaModal     = closeSevaModal;
+            window.toggle80G          = toggle80G;
+            window.checkMandateStatus = checkMandateStatus;
+            window.resetToForm        = resetToForm;
+        })();
     </script>
 </body>
 

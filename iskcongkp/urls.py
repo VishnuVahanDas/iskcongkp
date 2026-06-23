@@ -8,8 +8,7 @@ Function views
     1. Add an import:  from my_app import views
     2. Add a URL to urlpatterns:  path('', views.home, name='home')
 Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+    1. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
 Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
@@ -27,13 +26,15 @@ from django.conf.urls.static import static
 from django.views.static import serve
 
 
-from .views import  contact_view, privacy_view , terms_view, maintenance_view, signin_view, logout_view
+from .views import contact_view, privacy_view, terms_view, maintenance_view, signin_view, logout_view
+from homepage.views import home_view
 from accounts.views import signup_view  # Use OTP-based signup flow
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("payments/", include(("payments.urls", "payments"), namespace="payments")),
+    path("", home_view, name="home"),
     path("", include("homepage.urls")),
     path("donations/", include(("donations.urls", "donations"), namespace="donations")),
     path("who-we-are/", include("who_we_are.urls")),
@@ -55,4 +56,3 @@ urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Custom error handlers
 handler404 = 'iskcongkp.views.error_404_view'
-

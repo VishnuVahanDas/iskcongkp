@@ -2,8 +2,6 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import login, logout
-from easebuzz_lib.easebuzz_payment_gateway import Easebuzz
-
 from .forms import SignUpForm
 
 def contact_view(request):
