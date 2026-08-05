@@ -30,6 +30,24 @@
 {% home_anchor 'tula-daan' as tula_daan_href %}
 {% home_anchor 'yatra' as yatra_href %}
 {% home_anchor 'contact' as contact_href %}
+<div id="official-site-notice" role="note" style="background:#4a0e2a;color:#fdf2f8;text-align:center;font-size:.85rem;padding:.45rem 1rem;position:fixed;top:0;left:0;right:0;z-index:1032;">
+    ⚠ Beware of fraudulent websites. The only official website of ISKCON Sri Radha Madhav Temple, Gorakhpur is
+    <strong>www.iskcongorakhpur.com</strong> — we are not affiliated with any other domain for donations or otherwise.
+</div>
+<script>
+    (function () {
+        function adjustForNotice() {
+            var notice = document.getElementById('official-site-notice');
+            var navbar = document.getElementById('navbar-main');
+            if (!notice) { return; }
+            var h = notice.offsetHeight;
+            if (navbar) { navbar.style.top = h + 'px'; }
+            document.body.style.paddingTop = h + 'px';
+        }
+        document.addEventListener('DOMContentLoaded', adjustForNotice);
+        window.addEventListener('resize', adjustForNotice);
+    })();
+</script>
 <header id="header" class="header" role="banner" aria-label="Site header">
     <nav class="navbar fixed-top navbar-expand-md" id="navbar-main">
         <section class="region region-header d-block d-md-none">
