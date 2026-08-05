@@ -21,9 +21,33 @@ from payments.integrations.easebuzz import (
 from payments.utils import allowed_payment_redirect
 from payments.models import Order, NityaSevaAutoCollect, NityaSevaMandate
 from django.utils import timezone
+from django.core.cache import cache
+import hmac
 import logging
 
 logger = logging.getLogger(__name__)
+
+OTP_MAX_ATTEMPTS = 5
+OTP_SEND_LIMIT = 3
+OTP_SEND_WINDOW_SECONDS = 600  # 10 minutes
+
+
+def _client_ip(request) -> str:
+    return request.META.get("REMOTE_ADDR", "unknown")
+
+
+def _otp_send_rate_limited(scope: str, request, identifier: str) -> bool:
+    """True if this IP+identifier has requested too many OTPs/links recently."""
+    key = f"donations:otp_send:{scope}:{_client_ip(request)}:{(identifier or '').lower()}"
+    count = cache.get(key, 0)
+    if count >= OTP_SEND_LIMIT:
+        return True
+    cache.set(key, count + 1, timeout=OTP_SEND_WINDOW_SECONDS)
+    return False
+
+
+def _codes_match(a: str, b: str) -> bool:
+    return hmac.compare_digest(str(a or ""), str(b or ""))
 
 
 @require_GET
@@ -312,14 +336,17 @@ def easebuzz_response(request):
 @csrf_protect
 def magic_request(request):
     email = request.POST.get("email","").strip().lower()
+    if _otp_send_rate_limited("magic", request, email):
+        return HttpResponseBadRequest("Too many requests. Please wait a few minutes and try again.")
     from .models import Donor
     donor = Donor.objects.filter(email_norm=email).first()
-    if not donor:
-        return HttpResponseBadRequest("Email not found")
-    mlt = issue_magic_link(donor)
-    link = request.build_absolute_uri(reverse("donations:magic_claim", kwargs={"token": mlt.token}))
-    send_magic_link_email(donor, link)
-    return HttpResponse("Magic link sent")
+    if donor:
+        mlt = issue_magic_link(donor)
+        link = request.build_absolute_uri(reverse("donations:magic_claim", kwargs={"token": mlt.token}))
+        send_magic_link_email(donor, link)
+    # Same response whether or not the account exists — avoids leaking
+    # which emails are registered donors.
+    return HttpResponse("If that email is registered, a sign-in link has been sent.")
 
 @require_GET
 def magic_claim(request, token: str):
@@ -339,13 +366,15 @@ def magic_claim(request, token: str):
 @csrf_protect
 def otp_request(request):
     email = request.POST.get("email","").strip().lower()
+    if _otp_send_rate_limited("otp", request, email):
+        return HttpResponseBadRequest("Too many requests. Please wait a few minutes and try again.")
     from .models import Donor
     donor = Donor.objects.filter(email_norm=email).first()
-    if not donor:
-        return HttpResponseBadRequest("Email not found")
-    otp = issue_email_otp(donor)
-    send_otp_email(donor, otp.code)
-    return HttpResponse("OTP sent")
+    if donor:
+        otp = issue_email_otp(donor)
+        send_otp_email(donor, otp.code)
+    # Same response whether or not the account exists.
+    return HttpResponse("If that email is registered, a code has been sent.")
 
 @require_POST
 @csrf_protect
@@ -354,17 +383,29 @@ def otp_verify(request):
     code = request.POST.get("code","").strip()
     from django.utils import timezone
     from .models import Donor, OtpCode
+
+    # Also throttle verify attempts by IP+email, independent of the
+    # per-OTP attempts counter below, so clearing session/cookies or
+    # requesting fresh OTPs can't be used to bypass the lockout.
+    verify_key = f"donations:otp_verify:{_client_ip(request)}:{email}"
+    verify_count = cache.get(verify_key, 0)
+    if verify_count >= OTP_MAX_ATTEMPTS:
+        return HttpResponseBadRequest("Too many attempts. Please request a new code.")
+    cache.set(verify_key, verify_count + 1, timeout=OTP_SEND_WINDOW_SECONDS)
+
     donor = Donor.objects.filter(email_norm=email).first()
     if not donor:
-        return HttpResponseBadRequest("Email not found")
+        return HttpResponseBadRequest("Invalid code")
 
     otp = OtpCode.objects.filter(donor=donor, channel="email", consumed=False).order_by("-created_at").first()
     if not otp:
-        return HttpResponseBadRequest("No active OTP")
+        return HttpResponseBadRequest("Invalid code")
     if otp.expires_at < timezone.now():
-        return HttpResponseBadRequest("OTP expired")
+        return HttpResponseBadRequest("Invalid code")
+    if otp.attempts >= OTP_MAX_ATTEMPTS:
+        return HttpResponseBadRequest("Too many attempts. Please request a new code.")
     otp.attempts += 1
-    if otp.code != code:
+    if not _codes_match(code, otp.code):
         otp.save(update_fields=["attempts"])
         return HttpResponseBadRequest("Invalid code")
     # success

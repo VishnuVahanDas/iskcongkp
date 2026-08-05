@@ -2,8 +2,25 @@ from django.contrib import admin
 from .models import Order, NityaSevaAutoCollect, NityaSevaMandate
 
 
+class NoBulkDeleteAdminMixin:
+    """
+    Financial/transaction records should not be bulk-deletable from the
+    admin UI — there's no reconciliation trail for EaseBuzz-sourced data
+    if a row disappears. Deletion (if ever needed) should go through a
+    reviewed, logged, out-of-band process instead.
+    """
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
+
+
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(NoBulkDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("order_id", "status", "amount", "currency", "customer_id", "created_at", "updated_at")
     search_fields = ("order_id", "bank_order_id", "customer_id", "customer_email", "txn_id")
     list_filter = ("status", "currency", "refunded", "created_at")
@@ -11,7 +28,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(NityaSevaAutoCollect)
-class NityaSevaAutoCollectAdmin(admin.ModelAdmin):
+class NityaSevaAutoCollectAdmin(NoBulkDeleteAdminMixin, admin.ModelAdmin):
     list_display  = ["txnid", "full_name", "mobile", "seva_type", "amount", "status", "wants_80g", "created_at"]
     list_filter   = ["status", "seva_type", "wants_80g"]
     search_fields = ["txnid", "full_name", "mobile", "pan_number", "va_number", "upi_vpa", "last_payment_id"]
@@ -22,7 +39,7 @@ class NityaSevaAutoCollectAdmin(admin.ModelAdmin):
 
 
 @admin.register(NityaSevaMandate)
-class NityaSevaMandateAdmin(admin.ModelAdmin):
+class NityaSevaMandateAdmin(NoBulkDeleteAdminMixin, admin.ModelAdmin):
     list_display    = ["txnid", "full_name", "mobile", "seva_type",
                        "amount", "mandate_status", "last_debit_status",
                        "total_debits_done", "wants_80g", "created_at"]

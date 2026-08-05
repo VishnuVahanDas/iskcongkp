@@ -204,6 +204,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_ID = 1
 MAINTENANCE_MODE = False
 
+# Bound session lifetime (Django default is a 2-week cookie age if unset).
+SESSION_COOKIE_AGE = int(os.getenv("SESSION_COOKIE_AGE", str(60 * 60 * 24 * 7)))  # 7 days
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("SMTP_HOST", "smtpout.secureserver.net")
 EMAIL_PORT = int(os.getenv("SMTP_PORT", "465"))     # or 587

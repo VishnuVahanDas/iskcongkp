@@ -224,6 +224,8 @@ PAYMENTS_ADMIN_EMAILS = os.getenv("PAYMENTS_ADMIN_EMAILS", "vipul57612@gmail.com
 # Cookies and proxy security
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "true").lower() in ("1","true","yes")
 CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "true").lower() in ("1","true","yes")
+# Bound session lifetime (was previously unset, defaulting to Django's 2-week cookie age).
+SESSION_COOKIE_AGE = int(os.getenv("SESSION_COOKIE_AGE", str(60 * 60 * 24 * 7)))  # 7 days
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_DOMAIN = os.getenv("SESSION_COOKIE_DOMAIN", ".iskcongorakhpur.com")

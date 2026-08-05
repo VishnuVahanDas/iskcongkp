@@ -12,12 +12,17 @@ from .forms import SignUpStartForm, SignUpVerifyForm, SignInStartForm, SignInVer
 from .emails import send_welcome_email, send_signup_otp_email, send_login_otp_email
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.cache import cache
 import uuid
-import random
+import secrets
+import hmac
 
 
 OTP_SESSION_KEY = "signup_otp"
 LOGIN_OTP_SESSION_KEY = "login_otp"
+OTP_MAX_ATTEMPTS = 5
+OTP_SEND_LIMIT = 3
+OTP_SEND_WINDOW_SECONDS = 600  # 10 minutes
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +32,29 @@ def _generate_customer_id() -> str:
     while User.objects.filter(username=base).exists():
         base = f"C{uuid.uuid4().hex[:10].upper()}"
     return base
+
+
+def _generate_otp_code() -> str:
+    """Cryptographically strong 6-digit OTP (uniform over 100000-999999)."""
+    return str(secrets.randbelow(900000) + 100000)
+
+
+def _client_ip(request) -> str:
+    return request.META.get("REMOTE_ADDR", "unknown")
+
+
+def _otp_send_rate_limited(scope: str, request, identifier: str) -> bool:
+    """True if this IP+identifier has requested too many OTPs recently."""
+    key = f"otp:send:{scope}:{_client_ip(request)}:{(identifier or '').lower()}"
+    count = cache.get(key, 0)
+    if count >= OTP_SEND_LIMIT:
+        return True
+    cache.set(key, count + 1, timeout=OTP_SEND_WINDOW_SECONDS)
+    return False
+
+
+def _codes_match(a: str, b: str) -> bool:
+    return hmac.compare_digest(str(a or ""), str(b or ""))
 
 
 @ensure_csrf_cookie
@@ -55,7 +83,10 @@ def signup_view(request):
             start_form = SignUpStartForm(request.POST)
             if start_form.is_valid():
                 data = start_form.cleaned_data
-                code = f"{random.randint(100000, 999999)}"
+                if _otp_send_rate_limited("signup", request, data["email"]):
+                    start_form.add_error(None, "Too many code requests. Please wait a few minutes and try again.")
+                    return render(request, "signup.html", {"start_form": start_form, "otp_sent": False})
+                code = _generate_otp_code()
                 logger.info(
                     "Signup OTP generated for email=%s phone=%s first=%s last=%s",
                     data.get("email"),
@@ -69,6 +100,7 @@ def signup_view(request):
                     "email": data["email"],
                     "mobile": data["mobile"],
                     "code": code,
+                    "attempts": 0,
                     "created_at": timezone.now().isoformat(),
                 }
 
@@ -108,8 +140,23 @@ def signup_view(request):
                 return render(request, "signup.html", {"start_form": start_form, "verify_form": verify_form, "otp_sent": False})
 
             if verify_form.is_valid():
-                if verify_form.cleaned_data["otp"] != otp_state.get("code"):
-                    # Wrong OTP
+                if not _codes_match(verify_form.cleaned_data["otp"], otp_state.get("code")):
+                    # Wrong OTP — track attempts and lock out after too many tries
+                    attempts = otp_state.get("attempts", 0) + 1
+                    if attempts >= OTP_MAX_ATTEMPTS:
+                        try:
+                            del request.session[OTP_SESSION_KEY]
+                            request.session.modified = True
+                        except Exception:
+                            pass
+                        start_form = SignUpStartForm()
+                        verify_form = SignUpVerifyForm()
+                        verify_form.add_error(None, "Too many incorrect attempts. Please request a new code.")
+                        return render(request, "signup.html", {"start_form": start_form, "verify_form": verify_form, "otp_sent": False})
+
+                    otp_state["attempts"] = attempts
+                    request.session[OTP_SESSION_KEY] = otp_state
+                    request.session.modified = True
                     start_form = SignUpStartForm(initial={
                         "first_name": otp_state.get("first_name", ""),
                         "last_name": otp_state.get("last_name", ""),
@@ -226,11 +273,28 @@ def signin_view(request):
                     user = ensure_user_for_donor(donor)
                     target_email = donor.email or user.email
 
-            if not user or not target_email:
-                start_form.add_error("identifier", "No account found for this email or phone.")
+            # Rate-limit by IP+identifier regardless of whether the account
+            # exists, so this can't be used to distinguish valid accounts.
+            if _otp_send_rate_limited("signin", request, identifier):
+                start_form.add_error(None, "Too many code requests. Please wait a few minutes and try again.")
                 return render(request, "signin.html", {"start_form": start_form, "otp_sent": False})
 
-            code = f"{random.randint(100000, 999999)}"
+            if not user or not target_email:
+                # Do not reveal account existence: respond exactly as if a
+                # code were sent, but store a session state whose code can
+                # never be produced by a real login (no user_id behind it).
+                request.session[LOGIN_OTP_SESSION_KEY] = {
+                    "user_id": None,
+                    "email": "",
+                    "code": _generate_otp_code(),
+                    "attempts": 0,
+                    "created_at": timezone.now().isoformat(),
+                }
+                request.session.modified = True
+                verify_form = SignInVerifyForm()
+                return render(request, "signin.html", {"start_form": start_form, "verify_form": verify_form, "otp_sent": True})
+
+            code = _generate_otp_code()
             display_name = f"{user.first_name} {user.last_name}".strip() or user.username
             sent = send_login_otp_email(email=target_email, username=display_name, code=code)
             if sent:
@@ -238,6 +302,7 @@ def signin_view(request):
                     "user_id": user.id,
                     "email": target_email,
                     "code": code,
+                    "attempts": 0,
                     "created_at": timezone.now().isoformat(),
                 }
                 request.session[LOGIN_OTP_SESSION_KEY] = payload
@@ -264,7 +329,22 @@ def signin_view(request):
             return render(request, "signin.html", {"start_form": start_form, "verify_form": verify_form, "otp_sent": False})
 
         if verify_form.is_valid():
-            if verify_form.cleaned_data["otp"] != state.get("code"):
+            if not state.get("user_id") or not _codes_match(verify_form.cleaned_data["otp"], state.get("code")):
+                attempts = state.get("attempts", 0) + 1
+                if attempts >= OTP_MAX_ATTEMPTS:
+                    try:
+                        del request.session[LOGIN_OTP_SESSION_KEY]
+                        request.session.modified = True
+                    except Exception:
+                        pass
+                    start_form = SignInStartForm()
+                    verify_form = SignInVerifyForm()
+                    verify_form.add_error(None, "Too many incorrect attempts. Please request a new code.")
+                    return render(request, "signin.html", {"start_form": start_form, "verify_form": verify_form, "otp_sent": False})
+
+                state["attempts"] = attempts
+                request.session[LOGIN_OTP_SESSION_KEY] = state
+                request.session.modified = True
                 start_form = SignInStartForm()
                 verify_form.add_error("otp", "Invalid code. Please try again.")
                 return render(request, "signin.html", {"start_form": start_form, "verify_form": verify_form, "otp_sent": True})
