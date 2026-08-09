@@ -70,43 +70,58 @@ class Command(BaseCommand):
         self._print_summary(created, skipped)
 
     def _build_ekadashi_rows(self, year):
+        # Group by (masa, paksha) to detect an adhika (leap) month: when the
+        # same masa+paksha combination occurs twice in a year (~29-30 days
+        # apart), the earlier occurrence belongs to the inserted month and
+        # takes the special Padmini/Parama name instead of the regular one.
+        occurrences = panchang.find_ekadashi_dates(year)
+        groups = {}
+        for occ in occurrences:
+            groups.setdefault((occ['masa'], occ['paksha']), []).append(occ)
+
         rows = []
-        for occ in panchang.find_ekadashi_dates(year):
-            rows.append({
-                'date': occ['date'],
-                'event_type': 'ekadashi',
-                'title': f"{occ['paksha'].capitalize()} Paksha Ekadashi",
-                'fasting_till': 'till sunrise next day (break fast during parana window)',
-                'is_major_festival': False,
-            })
+        for (masa, paksha), occs in groups.items():
+            occs.sort(key=lambda o: o['date'])
+            for index, occ in enumerate(occs):
+                is_adhika_occurrence = len(occs) > 1 and index == 0
+                title = panchang.ekadashi_name(masa, paksha, adhika=is_adhika_occurrence)
+                rows.append({
+                    'date': occ['date'],
+                    'event_type': 'ekadashi',
+                    'title': title,
+                    'fasting_till': 'till sunrise next day (break fast during parana window)',
+                    'is_major_festival': False,
+                })
         return rows
 
     def _build_masa_tithi_rows(self, year, table, default_event_type):
-        # One occurrence per year per named festival/acharya day: in an
+        # One occurrence per year per named festival/acharya day. In an
         # adhika (leap) lunar month year, the same masa+tithi combination
-        # can genuinely recur ~29-30 days apart (e.g. an extra Ashadha),
-        # which would otherwise duplicate an annual festival like Ratha
-        # Yatra. First match in the year wins; the human review step is
-        # where a real adhika-masa correction (observe in nija, not
-        # adhika, month) gets applied if it matters for a given year.
-        found_titles = set()
-        rows = []
+        # can genuinely recur ~29-30 days apart (e.g. an extra Ashadha).
+        # The adhika month is always inserted BEFORE the nija (regular)
+        # month of the same solar association, and by tradition an annual
+        # festival is observed in the nija month, not the adhika one — so
+        # we keep the LATEST match in the year, not the first. (Ekadashi
+        # is handled separately in _build_ekadashi_rows: unlike festivals,
+        # both occurrences are observed there, just under different names.)
+        latest_match = {}
         for date in panchang.iter_year_dates(year):
             reading = panchang.daily_panchang(date)
             key = (reading['masa'], reading['tithi_number'])
             for entry in table:
                 if (entry['masa'], entry['tithi']) != key:
                     continue
-                if entry['title'] in found_titles:
-                    continue
-                found_titles.add(entry['title'])
-                rows.append({
-                    'date': date,
-                    'event_type': entry.get('event_type', default_event_type),
-                    'title': entry['title'],
-                    'fasting_till': entry.get('fasting_till', ''),
-                    'is_major_festival': entry.get('is_major_festival', False),
-                })
+                latest_match[entry['title']] = (date, entry)
+
+        rows = []
+        for title, (date, entry) in latest_match.items():
+            rows.append({
+                'date': date,
+                'event_type': entry.get('event_type', default_event_type),
+                'title': title,
+                'fasting_till': entry.get('fasting_till', ''),
+                'is_major_festival': entry.get('is_major_festival', False),
+            })
         return rows
 
     def _write_rows(self, rows):

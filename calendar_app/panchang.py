@@ -45,6 +45,37 @@ it does not model adhika/kshaya (leap/omitted) months, so masa boundaries can
 be a few days off from a full traditional calculation. Fine for a draft that
 a human reviews before publishing; not fine to treat as ground truth."""
 
+EKADASHI_NAMES = {
+    # masa index (into MASA_NAMES) -> (shukla-paksha name, krishna-paksha name)
+    0: ('Kamada', 'Papmochani'),           # Chaitra
+    1: ('Mohini', 'Varuthini'),            # Vaishakha
+    2: ('Nirjala', 'Apara'),               # Jyeshtha
+    3: ('Shayani', 'Yogini'),              # Ashadha
+    4: ('Shravana Putrada', 'Kamika'),     # Shravana
+    5: ('Parivartini', 'Aja'),             # Bhadrapada
+    6: ('Pashankusha', 'Indira'),          # Ashwin
+    7: ('Prabodhini', 'Rama'),             # Kartika
+    8: ('Mokshada', 'Utpanna'),            # Margashirsha
+    9: ('Pausha Putrada', 'Saphala'),      # Pausha
+    10: ('Jaya', 'Shattila'),              # Magha
+    11: ('Amalaki', 'Vijaya'),             # Phalguna
+}
+"""Standard Gaudiya Vaishnava Ekadashi names, by masa (panchang.MASA_NAMES
+index) and paksha. In an adhika (leap) lunar month year, the same masa can
+produce two Ekadashis in each paksha ~29-30 days apart; by tradition the
+earlier of the pair belongs to the inserted month and takes the special
+name Padmini (shukla) / Parama (krishna) instead of the regular name —
+see ekadashi_name()'s adhika argument."""
+
+
+def ekadashi_name(masa_index, paksha, adhika=False):
+    if adhika:
+        return 'Padmini Ekadashi' if paksha == 'shukla' else 'Parama Ekadashi'
+    shukla_name, krishna_name = EKADASHI_NAMES[masa_index]
+    name = shukla_name if paksha == 'shukla' else krishna_name
+    return f"{name} Ekadashi"
+
+
 NAKSHATRA_NAMES = [
     "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
     "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni",
@@ -147,11 +178,12 @@ def find_ekadashi_dates(year):
     results = []
     seen_tithi_11_26_months = set()
     for date in iter_year_dates(year):
-        tithi_number, paksha = tithi_at_sunrise(date)
+        jd_sr = sunrise_jd_ut(date)
+        tithi_number, paksha = tithi_at(jd_sr)
         if tithi_number in (11, 26):
             key = (date.month, tithi_number)
             if key in seen_tithi_11_26_months:
                 continue
             seen_tithi_11_26_months.add(key)
-            results.append({'date': date, 'paksha': paksha})
+            results.append({'date': date, 'paksha': paksha, 'masa': masa_at(jd_sr)})
     return results
