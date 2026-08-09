@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'who_we_are',
     'festivals',
     'services',
+    'calendar_app',
 ]
 if _CLEANUP_APP:
     INSTALLED_APPS.append(_CLEANUP_APP)  # should go after your apps

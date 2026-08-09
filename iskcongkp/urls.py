@@ -40,6 +40,7 @@ urlpatterns = [
     path("who-we-are/", include("who_we_are.urls")),
     path("services/", include("services.urls")),
     path("festivals/", include("festivals.urls")),
+    path("", include(("calendar_app.urls", "calendar_app"), namespace="calendar_app")),
     path("contact", contact_view, name="contact"),
     path("terms", terms_view, name="terms"),
     path("privacy-policy", privacy_view, name="privacy-policy"),

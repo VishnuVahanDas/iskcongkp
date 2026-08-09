@@ -1,5 +1,6 @@
 from django.shortcuts import render
 
+from calendar_app.views import upcoming_widget_items
 from .models import Banner, TopHeader, NewsPopup
 
 
@@ -123,55 +124,55 @@ HOME_SECTIONS = [
         "id": "festivals",
         "eyebrow": "Festivals",
         "title": "Seasonal observances, celebrations, and temple events",
-        "lead": "Use these links to open the existing calendar and festival views for deeper details.",
+        "lead": "Use these links to open the Vaishnava calendar and festival views for deeper details.",
         "image": "themes/images/nagar_kirtan.jpg",
         "image_alt": "Devotional festival procession",
         "cta": {
-            "label": "View festival page",
-            "href": "/festivals",
+            "label": "View calendar",
+            "href": "/calendar/",
         },
         "items": [
             {
                 "id": "calendar",
                 "title": "Calendar",
                 "text": "See the Vaishnava calendar and yearly observances.",
-                "href": "/festivals/vaishnava-calender",
-                "button_label": "Open page",
+                "href": "/calendar/",
+                "button_label": "Read more",
             },
             {
                 "id": "festival-list",
                 "title": "Festivals",
                 "text": "Read the festival feed and featured celebrations.",
-                "href": "/festivals",
-                "button_label": "Open page",
+                "href": "/calendar/festivals/",
+                "button_label": "Read more",
             },
             {
                 "id": "ekadashi",
                 "title": "Ekadashi",
                 "text": "Browse fasting days and Ekadashi updates.",
-                "href": "/festivals?field_tags_target_id=15",
-                "button_label": "Open page",
+                "href": "/calendar/ekadashi/",
+                "button_label": "Read more",
             },
             {
                 "id": "appearance",
                 "title": "Appearance",
                 "text": "Appearance days of the Lord and acharyas.",
-                "href": "/festivals?field_tags_target_id=18",
-                "button_label": "Open page",
+                "href": "/calendar/appearance-days/",
+                "button_label": "Read more",
             },
             {
                 "id": "disappearance",
                 "title": "Disappearance",
                 "text": "Commemoration of departure days of great souls.",
-                "href": "/festivals?field_tags_target_id=19",
-                "button_label": "Open page",
+                "href": "/calendar/disappearance-days/",
+                "button_label": "Read more",
             },
             {
                 "id": "events",
                 "title": "Events",
                 "text": "Special programs and congregation gatherings.",
-                "href": "/festivals?field_tags_target_id=20",
-                "button_label": "Open page",
+                "href": "/events/",
+                "button_label": "Read more",
             },
         ],
     },
@@ -244,5 +245,6 @@ def home_view(request):
         "top_header": top_headers,
         "news_popup": news_popup,
         "home_sections": HOME_SECTIONS,
+        "upcoming_widget_items": upcoming_widget_items(),
     }
     return render(request, 'home.html', context)

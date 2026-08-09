@@ -1,0 +1,19 @@
+{% load static %}
+{% if upcoming_widget_items %}
+<section id="upcoming-events" class="section container mt-4 mb-4">
+    <h2 class="h4 mb-3">Upcoming Events</h2>
+    <div class="row">
+        {% for item in upcoming_widget_items %}
+        <div class="col-md-4 col-xs-12 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <span class="badge bg-secondary mb-2">{{ item.kind }}</span>
+                    <h3 class="card-title h6">{{ item.title }}</h3>
+                    <p class="card-text"><small>{{ item.date|date:"D, d M Y" }}</small></p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}

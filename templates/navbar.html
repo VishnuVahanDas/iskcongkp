@@ -14,13 +14,13 @@
 {% home_anchor 'harinam' as harinam_href %}
 {% home_anchor 'sunday-feast' as sunday_feast_href %}
 {% home_anchor 'food-for-life' as food_for_life_href %}
-{% home_anchor 'festivals' as festivals_href %}
-{% home_anchor 'calendar' as calendar_href %}
-{% home_anchor 'festival-list' as festival_list_href %}
-{% home_anchor 'ekadashi' as ekadashi_href %}
-{% home_anchor 'appearance' as appearance_href %}
-{% home_anchor 'disappearance' as disappearance_href %}
-{% home_anchor 'events' as events_href %}
+{% url 'calendar_app:festivals' as festivals_href %}
+{% url 'calendar_app:vaishnava_calendar' as calendar_href %}
+{% url 'calendar_app:festivals' as festival_list_href %}
+{% url 'calendar_app:ekadashi_list' as ekadashi_href %}
+{% url 'calendar_app:appearance_days' as appearance_href %}
+{% url 'calendar_app:disappearance_days' as disappearance_href %}
+{% url 'calendar_app:temple_events' as events_href %}
 {% home_anchor 'donate' as donate_href %}
 {% home_anchor 'shastra-daan' as shastra_daan_href %}
 {% home_anchor 'temple-seva' as temple_seva_href %}
@@ -146,7 +146,7 @@
                                 <a href="{{ calendar_href }}" class="nav-link--who-we-are-vaishnava-calendar" data-drupal-link-system-path="node/36">Vaishnava Calendar</a>
                             </li>
                             <li class="dropdown-item px-md-3 px-lg-3 px-xl-3 px-xxl-3">
-                                <a href="{{ festival_list_href }}" class="nav-link--festivalsfield-tags-target-id13" data-drupal-link-query="{&quot;field_tags_target_id&quot;:&quot;13&quot;}" data-drupal-link-system-path="festivals">Prominent festivals</a>
+                                <a href="{{ festival_list_href }}?upcoming=true" class="nav-link--festivalsfield-tags-target-id13" data-drupal-link-query="{&quot;field_tags_target_id&quot;:&quot;13&quot;}" data-drupal-link-system-path="festivals">Prominent festivals</a>
                             </li>
                             <li class="dropdown-item px-md-3 px-lg-3 px-xl-3 px-xxl-3">
                                 <a href="{{ ekadashi_href }}" class="nav-link--festivalsfield-tags-target-id15" data-drupal-link-query="{&quot;field_tags_target_id&quot;:&quot;15&quot;}" data-drupal-link-system-path="festivals">Ekadashi</a>
@@ -161,7 +161,7 @@
                                 <a href="{{ events_href }}" class="nav-link--festivalsfield-tags-target-id20" data-drupal-link-query="{&quot;field_tags_target_id&quot;:&quot;20&quot;}" data-drupal-link-system-path="festivals">Events</a>
                             </li>
                             <li class="dropdown-item px-md-3 px-lg-3 px-xl-3 px-xxl-3">
-                                <a href="/festivals?field_tags_target_id=all" class="nav-link--festivalsfield-tags-target-idall" data-drupal-link-query="{&quot;field_tags_target_id&quot;:&quot;all&quot;}" data-drupal-link-system-path="festivals">View all Festivals</a>
+                                <a href="{{ festivals_href }}" class="nav-link--festivalsfield-tags-target-idall" data-drupal-link-query="{&quot;field_tags_target_id&quot;:&quot;all&quot;}" data-drupal-link-system-path="festivals">View all Festivals</a>
                             </li>
                         </ul>
                     </li>

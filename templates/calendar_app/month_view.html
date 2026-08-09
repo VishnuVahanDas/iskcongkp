@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#">
+
+<head>
+    {% include 'head.html' %}
+    <title>Vaishnava Calendar | ISKCON Gorakhpur</title>
+</head>
+
+<body class="layout-no-sidebars page-node-148 path-node node--type-page">
+    <a href="#main-content" class="visually-hidden-focusable">
+        Skip to main content
+    </a>
+
+    <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+        <div id="page-wrapper">
+            <div id="page">
+                {% include 'navbar.html' %}
+                <div id="main-wrapper" class="layout-main-wrapper clearfix">
+                    <div id="main" class="container">
+                        <div class="row row-offcanvas row-offcanvas-left clearfix">
+                            <main class="main-content col" id="content" role="main">
+                                <section class="section">
+                                    <a href="#main-content" id="main-content" tabindex="-1"></a>
+                                    <div class="block block-core block-page-title-block">
+                                        <div class="content">
+                                            <h1 class="title">Vaishnava Calendar</h1>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 mb-4">
+                                        <ul class="list-group list-group-horizontal-sm flex-wrap">
+                                            <li class="list-group-item"><a href="{% url 'calendar_app:vaishnava_calendar' %}">All</a></li>
+                                            <li class="list-group-item"><a href="{% url 'calendar_app:festivals' %}">Prominent Festivals</a></li>
+                                            <li class="list-group-item"><a href="{% url 'calendar_app:ekadashi_list' %}">Ekadashi</a></li>
+                                            <li class="list-group-item"><a href="{% url 'calendar_app:appearance_days' %}">Appearance Day</a></li>
+                                            <li class="list-group-item"><a href="{% url 'calendar_app:disappearance_days' %}">Disappearance Day</a></li>
+                                            <li class="list-group-item"><a href="{% url 'calendar_app:temple_events' %}">Events</a></li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="content">
+                                        <h2 class="h4">Upcoming</h2>
+                                        {% if upcoming_events %}
+                                        <div class="row">
+                                            {% for event in upcoming_events %}
+                                            <div class="col-md-4 col-xs-12 mb-3">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <span class="badge bg-secondary mb-2">{{ event.get_event_type_display }}</span>
+                                                        <h3 class="card-title h5">{{ event.title }}</h3>
+                                                        <p class="card-text">{{ event.date|date:"D, d M Y" }}</p>
+                                                        {% if event.fasting_till %}
+                                                        <p class="card-text"><small class="text-muted">Fasting {{ event.fasting_till }}</small></p>
+                                                        {% endif %}
+                                                        {% if event.description %}
+                                                        <p class="card-text">{{ event.description }}</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% else %}
+                                        <p>No upcoming entries have been published yet. Please check back soon.</p>
+                                        {% endif %}
+
+                                        <details class="mt-4">
+                                            <summary class="h4" style="cursor:pointer;">Past</summary>
+                                            {% if past_events %}
+                                            <div class="table-responsive mt-2">
+                                                <table class="table table-sm">
+                                                    <tbody>
+                                                        {% for event in past_events %}
+                                                        <tr>
+                                                            <td>{{ event.date|date:"D, d M Y" }}</td>
+                                                            <td>{{ event.get_event_type_display }}</td>
+                                                            <td>{{ event.title }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            {% if has_more_past %}
+                                            <a href="?past_page={{ past_page|add:1 }}">Show more past entries &rarr;</a>
+                                            {% endif %}
+                                            {% else %}
+                                            <p>No past entries to show.</p>
+                                            {% endif %}
+                                        </details>
+                                    </div>
+                                </section>
+                            </main>
+                        </div>
+                    </div>
+                </div>
+                {% include 'footer.html' %}
+            </div>
+        </div>
+    </div>
+    {% include 'body_script.html' %}
+</body>
+
+</html>
