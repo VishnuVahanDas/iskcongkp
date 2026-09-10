@@ -569,7 +569,7 @@ class NityaSevaInitiateView(View):
             access_key=result["access_key"],
             mandate_status="pending",
             mandate_start=_date.today(),
-            mandate_end=_date.today() + _rd(years=5),
+            mandate_end=_date.today() + _rd(years=25),
         )
 
         return JsonResponse({
